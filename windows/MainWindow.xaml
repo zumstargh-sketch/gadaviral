@@ -1,0 +1,69 @@
+<Window x:Class="GADAVIRAL.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GADAVIRAL — Dangme &amp; Ga Online Social Community"
+        Width="1280" Height="820" WindowStartupLocation="CenterScreen"
+        Background="#0B0B0D" Icon="Assets\gadaviral.ico">
+    <Grid>
+        <!-- native splash / loading layer -->
+        <Grid x:Name="SplashLayer" Background="#0B0B0D">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Image Source="Assets/gadaviral.png" Width="96" Height="96" Margin="0,0,0,12"
+                       RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Center"/>
+                <TextBlock Text="GADAVIRAL" FontSize="56" FontWeight="Bold" HorizontalAlignment="Center">
+                    <TextBlock.Foreground>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#FFD34D" Offset="0"/>
+                            <GradientStop Color="#F2A900" Offset="1"/>
+                        </LinearGradientBrush>
+                    </TextBlock.Foreground>
+                </TextBlock>
+                <TextBlock Text="Dangme &amp; Ga Online Social Community"
+                           Foreground="#9CA3AF" FontSize="13" Margin="0,8,0,0"
+                           HorizontalAlignment="Center"/>
+                <!-- seeded community members' profile pictures -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-01.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-02.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-03.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-04.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-05.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-06.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-07.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                    <Border Width="40" Height="40" CornerRadius="20" BorderBrush="#0B0B0D" BorderThickness="2" Margin="-8,0,0,0">
+                        <Border.Background><ImageBrush ImageSource="Assets/avatars/member-08.png" Stretch="UniformToFill"/></Border.Background>
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="117 members already sharing — join them"
+                           Foreground="#9CA3AF" FontSize="12" Margin="0,10,0,0"
+                           HorizontalAlignment="Center"/>
+                <ProgressBar IsIndeterminate="True" Width="220" Height="4" Margin="0,18,0,0"
+                             Foreground="#F2A900" Background="#1B1B22"/>
+                <TextBlock x:Name="StatusText" Text="Starting GADAVIRAL…"
+                           Foreground="#6B7280" FontSize="12" Margin="0,12,0,0"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Margin="0,24,0,0" FontSize="11.5" HorizontalAlignment="Center">
+                    <Run Text="Made by " Foreground="#9CA3AF"/>
+                    <Run Text="DATILA Solutions" Foreground="#F2A900" FontWeight="Bold"/>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+
+        <!-- the app itself (same web app + same backend as website and Android) -->
+        <Grid x:Name="WebViewHost" Visibility="Collapsed"/>
+    </Grid>
+</Window>

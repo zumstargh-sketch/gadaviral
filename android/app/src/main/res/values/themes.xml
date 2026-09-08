@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.GADAVIRAL" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#F2A900</item>
+        <item name="colorOnPrimary">#141414</item>
+        <item name="colorSecondary">#1E88E5</item>
+        <item name="android:statusBarColor">#0B0B0D</item>
+        <item name="android:windowBackground">#0B0B0D</item>
+        <item name="android:colorBackground">#0B0B0D</item>
+    </style>
+</resources>

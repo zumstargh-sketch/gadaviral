@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0B0B0D"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient></defs>
+<rect width="1200" height="400" fill="url(#g)"/>
+<path d="M0 320 Q 300 260 600 320 T 1200 320 V400 H0 Z" fill="#E65100" opacity="0.85"/>
+<text x="600" y="180" font-family="Arial" font-size="44" font-weight="bold" fill="#FFFFFF"
+ text-anchor="middle">Mamprobi</text></svg>

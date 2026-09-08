@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<defs><linearGradient id="g164" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#01579B"/><stop offset="1" stop-color="#F2A900"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#g164)"/>
+<path d="M0 300 Q 240 240 480 300 T 960 300 V540 H0 Z" fill="#1E88E5" opacity="0.8"/>
+<path d="M0 340 Q 240 280 480 340 T 960 340 V540 H0 Z" fill="#0B0B0D" opacity="0.55"/>
+<circle cx="640" cy="150" r="70" fill="#F2A900" opacity="0.9"/>
+<text x="480" y="480" font-family="Arial" font-size="34" font-weight="bold" fill="#FFFFFF"
+ text-anchor="middle">coast at golden hour</text></svg>

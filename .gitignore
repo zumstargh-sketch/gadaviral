@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+web/dist/
+backend/dist/
+.vs/
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Local data
+backend/.data/
+backend/logs/
+backend/storage/*
+!backend/storage/seed-media
+!backend/storage/images
+*.log
+
+# Scratch/debug output (repo root)
+/flag.txt
+/probe*.txt
+/pub-*.txt
+/tunnel-*.txt
+
+# .NET
+windows/bin/
+windows/obj/
+windows/publish/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.apk
+*.apk.idsig
+
+# Misc
+.DS_Store
+Thumbs.db
+*.pid
+
+# Build/test scratch output
+android/build-log.txt
+android/build-err.txt
+backend/*.txt
+backend/srv-*.txt
+backend/verify-out.txt
+web/tsconfig.tsbuildinfo

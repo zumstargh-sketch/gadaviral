@@ -1,0 +1,4 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  GADAVIRAL -> C:\Users\I AM\Documents\Datila\GADAVIRAL\windows\bin\Release\net10.0-windows\win-x64\GADAVIRAL.dll
+  GADAVIRAL -> C:\Users\I AM\Documents\Datila\GADAVIRAL\windows\publish\
