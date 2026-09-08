@@ -11,6 +11,433 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
+// --- Additional activation tables for messaging, groups, polls, reports ---
+register_activation_hook(__FILE__, 'gadv_create_additional_tables');
+function gadv_create_additional_tables() {
+	global $wpdb;
+	$charset_collate = $wpdb->get_charset_collate();
+	$prefix = $wpdb->prefix;
+	$sqls = [];
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_conversations (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		is_group tinyint(1) NOT NULL DEFAULT 0,
+		title varchar(255) DEFAULT NULL,
+		created_by bigint(20) unsigned DEFAULT NULL,
+		last_message_at datetime DEFAULT NULL,
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_conversation_participants (
+		conversation_id bigint(20) unsigned NOT NULL,
+		user_id bigint(20) unsigned NOT NULL,
+		last_read_at datetime DEFAULT NULL,
+		joined_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (conversation_id, user_id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_messages (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		conversation_id bigint(20) unsigned NOT NULL,
+		sender_id bigint(20) unsigned NOT NULL,
+		content text,
+		media_url text,
+		status varchar(32) DEFAULT 'SENT',
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_groups (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		slug varchar(191) NOT NULL,
+		name varchar(255) NOT NULL,
+		description text,
+		cover_url text,
+		avatar_url text,
+		privacy varchar(32) DEFAULT 'PUBLIC',
+		creator_id bigint(20) unsigned DEFAULT NULL,
+		member_count int DEFAULT 0,
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id),
+		UNIQUE KEY slug (slug)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_group_members (
+		group_id bigint(20) unsigned NOT NULL,
+		user_id bigint(20) unsigned NOT NULL,
+		role varchar(32) DEFAULT 'MEMBER',
+		status varchar(32) DEFAULT 'ACTIVE',
+		joined_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (group_id, user_id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_polls (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		post_id bigint(20) unsigned DEFAULT NULL,
+		question text,
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_poll_options (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		poll_id bigint(20) unsigned NOT NULL,
+		label varchar(255) NOT NULL,
+		votes int NOT NULL DEFAULT 0,
+		PRIMARY KEY (id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_poll_votes (
+		poll_id bigint(20) unsigned NOT NULL,
+		option_id bigint(20) unsigned NOT NULL,
+		user_id bigint(20) unsigned NOT NULL,
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (poll_id, option_id, user_id)
+	) $charset_collate";
+
+	$sqls[] = "CREATE TABLE IF NOT EXISTS {$prefix}gadv_reports (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		reporter_id bigint(20) unsigned NOT NULL,
+		entity_type varchar(32) NOT NULL,
+		entity_id bigint(20) NOT NULL,
+		reason varchar(255),
+		details text,
+		status varchar(32) DEFAULT 'OPEN',
+		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id)
+	) $charset_collate";
+
+	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+	foreach ($sqls as $sql) dbDelta($sql);
+}
+
+// --- Comments endpoints ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/posts/(?P<id>[^/]+)/comments', [
+		'methods' => 'GET',
+		'callback' => 'gadv_comments_list',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route('gad/v1', '/posts/(?P<id>[^/]+)/comments', [
+		'methods' => 'POST',
+		'callback' => 'gadv_comments_create',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+});
+
+function gadv_comments_list($request) {
+	$post_id = intval($request->get_param('id'));
+	$comments = get_comments(['post_id' => $post_id, 'status' => 'approve']);
+	$out = [];
+	foreach ($comments as $c) {
+		$out[] = [
+			'id' => $c->comment_ID,
+			'author_id' => $c->user_id,
+			'content' => $c->comment_content,
+			'created_at' => $c->comment_date_gmt,
+			'parent_comment_id' => $c->comment_parent ?: null,
+		];
+	}
+	return rest_ensure_response(['items' => $out, 'total' => count($out)]);
+}
+
+function gadv_comments_create($request) {
+	$post_id = intval($request->get_param('id'));
+	$body = json_decode($request->get_body(), true);
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$content = isset($body['content']) ? wp_kses_post($body['content']) : '';
+	if (empty($content)) return new WP_Error('invalid', 'Content required', ['status' => 400]);
+	$commentdata = [
+		'comment_post_ID' => $post_id,
+		'comment_content' => $content,
+		'user_id' => $user->ID,
+		'comment_parent' => isset($body['parent_comment_id']) ? intval($body['parent_comment_id']) : 0,
+		'comment_approved' => 1,
+	];
+	$cid = wp_insert_comment($commentdata);
+	if (!$cid) return new WP_Error('failed', 'Could not create comment', ['status' => 500]);
+	return rest_ensure_response(['id' => $cid]);
+}
+
+// --- Follow endpoints ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/users/(?P<id>[^/]+)/follow', [
+		'methods' => 'POST',
+		'callback' => 'gadv_follow_user',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/users/(?P<id>[^/]+)/unfollow', [
+		'methods' => 'POST',
+		'callback' => 'gadv_unfollow_user',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+});
+
+function gadv_follow_user($request) {
+	global $wpdb;
+	$target = intval($request->get_param('id'));
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	if ($user->ID === $target) return new WP_Error('invalid', 'Cannot follow yourself', ['status' => 400]);
+	$table = $wpdb->prefix . 'gadv_follows';
+	$exists = $wpdb->get_row($wpdb->prepare("SELECT 1 FROM $table WHERE follower_id=%d AND followee_id=%d", $user->ID, $target));
+	if (!$exists) $wpdb->insert($table, ['follower_id' => $user->ID, 'followee_id' => $target]);
+	return rest_ensure_response(['ok' => true]);
+}
+
+function gadv_unfollow_user($request) {
+	global $wpdb;
+	$target = intval($request->get_param('id'));
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$table = $wpdb->prefix . 'gadv_follows';
+	$wpdb->delete($table, ['follower_id' => $user->ID, 'followee_id' => $target]);
+	return rest_ensure_response(['ok' => true]);
+}
+
+// --- Notifications endpoints ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/notifications', [
+		'methods' => 'GET',
+		'callback' => 'gadv_notifications_list',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/notifications/mark-read', [
+		'methods' => 'POST',
+		'callback' => 'gadv_notifications_mark_read',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+});
+
+function gadv_notifications_list($request) {
+	global $wpdb;
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$table = $wpdb->prefix . 'gadv_notifications';
+	$rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table WHERE user_id=%d ORDER BY created_at DESC LIMIT 100", $user->ID));
+	return rest_ensure_response(['items' => $rows]);
+}
+
+function gadv_notifications_mark_read($request) {
+	global $wpdb;
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$body = json_decode($request->get_body(), true);
+	$ids = isset($body['ids']) && is_array($body['ids']) ? array_map('intval', $body['ids']) : [];
+	if (empty($ids)) return new WP_Error('invalid', 'No ids provided', ['status' => 400]);
+	$in = implode(',', array_fill(0, count($ids), '%d'));
+	$query = $wpdb->prepare("UPDATE {$wpdb->prefix}gadv_notifications SET read_at = NOW() WHERE user_id = %d AND id IN ($in)", array_merge([$user->ID], $ids));
+	$wpdb->query($query);
+	return rest_ensure_response(['ok' => true]);
+}
+
+// --- Messaging endpoints (conversations/messages) ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/conversations', [
+		'methods' => 'GET',
+		'callback' => 'gadv_conversations_list',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/conversations', [
+		'methods' => 'POST',
+		'callback' => 'gadv_conversation_create',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/conversations/(?P<id>\d+)/messages', [
+		'methods' => 'GET',
+		'callback' => 'gadv_messages_list',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/conversations/(?P<id>\d+)/messages', [
+		'methods' => 'POST',
+		'callback' => 'gadv_message_send',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+});
+
+function gadv_conversations_list($request) {
+	global $wpdb;
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$table = $wpdb->prefix . 'gadv_conversation_participants';
+	$rows = $wpdb->get_results($wpdb->prepare("SELECT conversation_id FROM $table WHERE user_id=%d", $user->ID));
+	$out = [];
+	foreach ($rows as $r) {
+		$conv = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_conversations WHERE id=%d", $r->conversation_id));
+		if ($conv) $out[] = $conv;
+	}
+	return rest_ensure_response(['items' => $out]);
+}
+
+function gadv_conversation_create($request) {
+	global $wpdb;
+	$body = json_decode($request->get_body(), true);
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$is_group = !empty($body['is_group']) ? 1 : 0;
+	$title = isset($body['title']) ? sanitize_text_field($body['title']) : null;
+	$wpdb->insert($wpdb->prefix . 'gadv_conversations', ['is_group' => $is_group, 'title' => $title, 'created_by' => $user->ID]);
+	$cid = $wpdb->insert_id;
+	// participants
+	$participants = isset($body['participants']) && is_array($body['participants']) ? $body['participants'] : [];
+	$wpdb->insert($wpdb->prefix . 'gadv_conversation_participants', ['conversation_id' => $cid, 'user_id' => $user->ID]);
+	foreach ($participants as $p) {
+		$p = intval($p);
+		if ($p && $p !== $user->ID) $wpdb->insert($wpdb->prefix . 'gadv_conversation_participants', ['conversation_id' => $cid, 'user_id' => $p]);
+	}
+	return rest_ensure_response(['id' => $cid]);
+}
+
+function gadv_messages_list($request) {
+	global $wpdb;
+	$cid = intval($request->get_param('id'));
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	// Ensure participant
+	$part = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_conversation_participants WHERE conversation_id=%d AND user_id=%d", $cid, $user->ID));
+	if (!$part) return new WP_Error('forbidden', 'Not a participant', ['status' => 403]);
+	$rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_messages WHERE conversation_id=%d ORDER BY created_at ASC", $cid));
+	return rest_ensure_response(['items' => $rows]);
+}
+
+function gadv_message_send($request) {
+	global $wpdb;
+	$cid = intval($request->get_param('id'));
+	$body = json_decode($request->get_body(), true);
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$content = isset($body['content']) ? wp_kses_post($body['content']) : '';
+	$media = isset($body['media_url']) ? esc_url_raw($body['media_url']) : null;
+	$wpdb->insert($wpdb->prefix . 'gadv_messages', ['conversation_id' => $cid, 'sender_id' => $user->ID, 'content' => $content, 'media_url' => $media]);
+	$mid = $wpdb->insert_id;
+	$wpdb->update($wpdb->prefix . 'gadv_conversations', ['last_message_at' => current_time('mysql', 1)], ['id' => $cid]);
+	return rest_ensure_response(['id' => $mid]);
+}
+
+// --- Groups endpoints (basic) ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/groups', [
+		'methods' => 'GET',
+		'callback' => 'gadv_groups_list',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route('gad/v1', '/groups', [
+		'methods' => 'POST',
+		'callback' => 'gadv_groups_create',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/groups/(?P<slug>[^/]+)', [
+		'methods' => 'GET',
+		'callback' => 'gadv_group_get',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route('gad/v1', '/groups/(?P<slug>[^/]+)/join', [
+		'methods' => 'POST',
+		'callback' => 'gadv_group_join',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+});
+
+function gadv_groups_list($request) {
+	global $wpdb;
+	$rows = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}gadv_groups ORDER BY created_at DESC LIMIT 100");
+	return rest_ensure_response(['items' => $rows]);
+}
+
+function gadv_groups_create($request) {
+	global $wpdb;
+	$body = json_decode($request->get_body(), true);
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$slug = isset($body['slug']) ? sanitize_title($body['slug']) : sanitize_title($body['name'] ?? uniqid('g'));
+	$name = isset($body['name']) ? sanitize_text_field($body['name']) : 'Group';
+	$desc = isset($body['description']) ? wp_kses_post($body['description']) : '';
+	$wpdb->insert($wpdb->prefix . 'gadv_groups', ['slug' => $slug, 'name' => $name, 'description' => $desc, 'creator_id' => $user->ID]);
+	$gid = $wpdb->insert_id;
+	$wpdb->insert($wpdb->prefix . 'gadv_group_members', ['group_id' => $gid, 'user_id' => $user->ID, 'role' => 'OWNER']);
+	return rest_ensure_response(['id' => $gid, 'slug' => $slug]);
+}
+
+function gadv_group_get($request) {
+	global $wpdb;
+	$slug = sanitize_text_field($request->get_param('slug'));
+	$row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_groups WHERE slug=%s", $slug));
+	if (!$row) return new WP_Error('not_found', 'Group not found', ['status' => 404]);
+	return rest_ensure_response($row);
+}
+
+function gadv_group_join($request) {
+	global $wpdb;
+	$slug = sanitize_text_field($request->get_param('slug'));
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$g = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_groups WHERE slug=%s", $slug));
+	if (!$g) return new WP_Error('not_found', 'Group not found', ['status' => 404]);
+	$exists = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_group_members WHERE group_id=%d AND user_id=%d", $g->id, $user->ID));
+	if (!$exists) $wpdb->insert($wpdb->prefix . 'gadv_group_members', ['group_id' => $g->id, 'user_id' => $user->ID]);
+	return rest_ensure_response(['ok' => true]);
+}
+
+// --- Polls endpoints (basic) ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/polls/(?P<poll>\d+)/vote', [
+		'methods' => 'POST',
+		'callback' => 'gadv_poll_vote',
+		'permission_callback' => 'gadv_require_jwt',
+	]);
+	register_rest_route('gad/v1', '/polls/(?P<poll>\d+)', [
+		'methods' => 'GET',
+		'callback' => 'gadv_poll_get',
+		'permission_callback' => '__return_true',
+	]);
+});
+
+function gadv_poll_vote($request) {
+	global $wpdb;
+	$poll = intval($request->get_param('poll'));
+	$body = json_decode($request->get_body(), true);
+	$option = isset($body['option_id']) ? intval($body['option_id']) : 0;
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	if (!$option) return new WP_Error('invalid', 'Option required', ['status' => 400]);
+	$table_votes = $wpdb->prefix . 'gadv_poll_votes';
+	$wpdb->replace($table_votes, ['poll_id' => $poll, 'option_id' => $option, 'user_id' => $user->ID]);
+	// update counts
+	$count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}gadv_poll_votes WHERE poll_id=%d AND option_id=%d", $poll, $option));
+	$wpdb->update($wpdb->prefix . 'gadv_poll_options', ['votes' => $count], ['id' => $option]);
+	return rest_ensure_response(['ok' => true, 'option_votes' => intval($count)]);
+}
+
+function gadv_poll_get($request) {
+	global $wpdb;
+	$poll = intval($request->get_param('poll'));
+	$poll_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_polls WHERE id=%d", $poll));
+	if (!$poll_row) return new WP_Error('not_found', 'Poll not found', ['status' => 404]);
+	$options = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}gadv_poll_options WHERE poll_id=%d", $poll));
+	return rest_ensure_response(['poll' => $poll_row, 'options' => $options]);
+}
+
+// --- Search endpoint (basic) ---
+add_action('rest_api_init', function() {
+	register_rest_route('gad/v1', '/search', [
+		'methods' => 'GET',
+		'callback' => 'gadv_search',
+		'permission_callback' => '__return_true',
+	]);
+});
+
+function gadv_search($request) {
+	$q = sanitize_text_field($request->get_param('q') ?? '');
+	if ($q === '') return rest_ensure_response(['items' => []]);
+	$users = get_users(['search' => "*{$q}*", 'search_columns' => ['user_login', 'display_name', 'user_email'], 'number' => 10]);
+	$posts = get_posts(['s' => $q, 'posts_per_page' => 10]);
+	$uout = array_map('gadv_user_public', $users);
+	$pout = array_map(function($p){ return ['id'=>$p->ID,'title'=>$p->post_title,'excerpt'=>wp_trim_words($p->post_content,20)];}, $posts);
+	return rest_ensure_response(['users' => $uout, 'posts' => $pout]);
+}
+
+
 global $gadv_db_version;
 $gadv_db_version = '0.1';
 
