@@ -1,10 +1,39 @@
+// Central API configuration — the ONLY place that knows where the API lives.
+//
+// Production: the app is served from https://www.gadaviral.com and uses a
+// root-relative namespace so in-production requests resolve to
+//   https://www.gadaviral.com/wp-json/gadaviral/v1/
+//
+// Development (local): if you run the SPA on localhost for development the
+// UI will point at the live website backend so local testing uses the real
+// API. This makes local UI behave like the deployed app without needing a
+// separate local API. If you prefer the original root-relative behaviour,
+// change the condition below or set a VITE_API_BASE in your dev environment.
+
+const PROD_API = '/wp-json/gadaviral/v1';
+const LIVE_API = 'https://www.gadaviral.com/wp-json/gadaviral/v1';
+
+function isLocalhost() {
+  try {
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+export const API_BASE = isLocalhost() ? LIVE_API : PROD_API;
+
+/** Build an absolute URL for a namespaced API path, e.g. apiUrl('auth/login'). */
+export function apiUrl(path: string): string {
+  return `${API_BASE}/${path.replace(/^\/+/, '')}`;
+}
+
 export class Api {
   accessToken: string | null = localStorage.getItem('gadv_access');
   refreshToken: string | null = localStorage.getItem('gadv_refresh');
   onUser: ((u: any | null) => void) | null = null;
-  // Same-origin by default (the backend serves this app). Override with
-  // VITE_API_BASE at build time to host the SPA separately from the API.
-  apiBase: string = (import.meta as any).env?.VITE_API_BASE ?? '';
 
   setTokens(access: string | null, refresh?: string | null) {
     this.accessToken = access;
@@ -25,7 +54,7 @@ export class Api {
       headers['Content-Type'] = 'application/json';
       body = JSON.stringify(body);
     }
-    const res = await fetch(`${this.apiBase}/api/v1${path}`, { ...opts, headers, body });
+    const res = await fetch(apiUrl(path), { ...opts, headers, body });
     if (res.status === 401 && retry && this.refreshToken) {
       const ok = await this.tryRefresh();
       if (ok) return this.fetch(path, opts, false);
@@ -35,8 +64,14 @@ export class Api {
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw Object.assign(new Error(data?.error?.message ?? `Request failed (${res.status})`), {
-        status: res.status, code: data?.error?.code, details: data?.error?.details,
+      // WordPress REST errors look like {code, message, data:{status}}; the
+      // previous API used {error:{code, message, details}}. Support both so
+      // the API's own human-readable message always reaches the UI.
+      const message: string | undefined = data?.error?.message ?? data?.message;
+      throw Object.assign(new Error(message ?? `Request failed (${res.status})`), {
+        status: res.status,
+        code: data?.error?.code ?? data?.code,
+        details: data?.error?.details ?? data?.data,
       });
     }
     return data;
@@ -44,7 +79,7 @@ export class Api {
 
   async tryRefresh(): Promise<boolean> {
     try {
-      const res = await fetch(`${this.apiBase}/api/v1/auth/refresh`, {
+      const res = await fetch(apiUrl('auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),
