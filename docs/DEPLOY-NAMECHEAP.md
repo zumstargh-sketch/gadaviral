@@ -87,7 +87,10 @@ Rebuild/repackage any time:
 
 ```powershell
 cd web; npm run build; cd ..
-Compress-Archive -Path web\dist\* -DestinationPath web\dist.zip -Force
+# Package with the files at the ROOT of the zip (extracting into /app/ must
+# produce /app/index.html, /app/assets/, /app/icons/ — never a nested dist/):
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::CreateFromDirectory("$PWD\web\dist", "$PWD\web\dist.zip")
 Compress-Archive -Path wordpress\gadaviral-api\gadaviral-api.php -DestinationPath wordpress\gadaviral-api\gadaviral-api.zip -Force
 ```
 
