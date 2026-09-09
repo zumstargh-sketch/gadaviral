@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -731,13 +731,38 @@ add_action('admin_init', function () {
 	foreach (['gadv_google_client_id', 'gadv_google_client_secret', 'gadv_google_android_client_id', 'gadv_google_desktop_client_id'] as $opt) {
 		register_setting('gadv_google', $opt);
 	}
+	// Outgoing email (SMTP) — avoids depending on third-party SMTP plugins.
+	foreach (['gadv_smtp_host', 'gadv_smtp_port', 'gadv_smtp_username', 'gadv_smtp_password', 'gadv_smtp_secure'] as $opt) {
+		register_setting('gadv_google', $opt);
+	}
+});
+
+// Route ALL WordPress mail (verification codes, password resets, email
+// changes, admin notices) through authenticated SMTP when configured.
+// With no host set, the default PHP mail() transport is used untouched.
+add_action('phpmailer_init', function ($phpmailer) {
+	$host = get_option('gadv_smtp_host');
+	if (!$host) return;
+	$phpmailer->isSMTP();
+	$phpmailer->Host = $host;
+	$phpmailer->Port = intval(get_option('gadv_smtp_port') ?: 465);
+	$phpmailer->SMTPAuth = true;
+	$phpmailer->Username = get_option('gadv_smtp_username');
+	$phpmailer->Password = get_option('gadv_smtp_password');
+	$phpmailer->SMTPSecure = get_option('gadv_smtp_secure') ?: 'ssl'; // 'ssl' (465) or 'tls' (587)
+	$from = get_option('gadv_smtp_username') ?: 'admin@gadaviral.com';
+	$phpmailer->setFrom($from, 'GADAVIRAL');
 });
 function gadv_google_settings_page() {
 	if (!current_user_can('manage_options')) return;
 	$redirect = rest_url('gadaviral/v1/auth/google/callback');
+	// Test-email result notice (admin_post handler redirects back with flags).
+	$test_done = isset($_GET['smtp-test']);
+	$test_ok = isset($_GET['ok']);
 	?>
 	<div class="wrap">
-		<h1>GADAVIRAL Google Sign-in</h1>
+		<h1>GADAVIRAL — Google Sign-in &amp; Email (SMTP)</h1>
+		<h2>Google Sign-in</h2>
 		<p>Paste the OAuth credentials from Google Cloud Console (guide: <code>docs/GOOGLE-AUTH-SETUP.md</code>).</p>
 		<p><strong>Authorized redirect URI for the Web OAuth client:</strong><br>
 			<input class="regular-text" type="text" readonly onclick="this.select()" value="<?php echo esc_attr($redirect); ?>" /></p>
@@ -749,11 +774,51 @@ function gadv_google_settings_page() {
 				<tr><th>Android client ID <span class="description">(optional — for the APK later)</span></th><td><input class="regular-text" type="text" name="gadv_google_android_client_id" value="<?php echo esc_attr(get_option('gadv_google_android_client_id')); ?>" /></td></tr>
 				<tr><th>Desktop client ID <span class="description">(optional — for the Windows app later)</span></th><td><input class="regular-text" type="text" name="gadv_google_desktop_client_id" value="<?php echo esc_attr(get_option('gadv_google_desktop_client_id')); ?>" /></td></tr>
 			</table>
-			<?php submit_button(); ?>
+			<?php submit_button('Save Google settings'); ?>
+		</form>
+
+		<hr />
+		<h2>Email (SMTP) — verification codes &amp; password resets</h2>
+		<p>Create the mailbox first (cPanel → Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
+			Namecheap: host <code>mail.gadaviral.com</code>, port <code>465</code>, encryption <code>ssl</code>.
+			Leave the host empty to fall back to PHP mail().</p>
+		<?php if ($test_done): ?>
+			<div class="notice <?php echo $test_ok ? 'notice-success' : 'notice-error'; ?> is-dismissible">
+				<p><?php echo $test_ok ? '✅ Test email sent — check the inbox (and spam folder).' : '❌ Test email FAILED — check host/port/encryption/credentials.'; ?></p>
+			</div>
+		<?php endif; ?>
+		<form method="post" action="options.php">
+			<?php settings_fields('gadv_google'); ?>
+			<table class="form-table" role="presentation">
+				<tr><th>SMTP host</th><td><input class="regular-text" type="text" name="gadv_smtp_host" value="<?php echo esc_attr(get_option('gadv_smtp_host')); ?>" placeholder="mail.gadaviral.com" /></td></tr>
+				<tr><th>Port</th><td><input type="number" name="gadv_smtp_port" value="<?php echo esc_attr(get_option('gadv_smtp_port') ?: 465); ?>" /></td></tr>
+				<tr><th>Encryption</th><td>
+					<select name="gadv_smtp_secure">
+						<option value="ssl" <?php selected(get_option('gadv_smtp_secure') ?: 'ssl', 'ssl'); ?>>SSL (port 465)</option>
+						<option value="tls" <?php selected(get_option('gadv_smtp_secure'), 'tls'); ?>>TLS (port 587)</option>
+					</select></td></tr>
+				<tr><th>Username <span class="description">(the mailbox = the From address)</span></th><td><input class="regular-text" type="text" name="gadv_smtp_username" value="<?php echo esc_attr(get_option('gadv_smtp_username')); ?>" placeholder="admin@gadaviral.com" /></td></tr>
+				<tr><th>Password</th><td><input class="regular-text" type="password" name="gadv_smtp_password" value="<?php echo esc_attr(get_option('gadv_smtp_password')); ?>" autocomplete="new-password" /></td></tr>
+			</table>
+			<?php submit_button('Save email settings'); ?>
+		</form>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+			<input type="hidden" name="action" value="gadv_smtp_test" />
+			<?php wp_nonce_field('gadv_smtp_test'); ?>
+			<?php submit_button('Send test email to my own address', 'secondary', 'submit', false); ?>
 		</form>
 	</div>
 	<?php
 }
+
+add_action('admin_post_gadv_smtp_test', function () {
+	if (!current_user_can('manage_options')) wp_die('Forbidden');
+	check_admin_referer('gadv_smtp_test');
+	$to = get_option('admin_email');
+	$sent = wp_mail($to, 'GADAVIRAL SMTP test', 'If you can read this, outgoing email works. ✅');
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0], admin_url('options-general.php')));
+	exit;
+});
 
 // --- User profile update ---
 function gadv_user_update_me($request) {
