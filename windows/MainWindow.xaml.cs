@@ -7,11 +7,12 @@ namespace GADAVIRAL;
 
 public partial class MainWindow : Window
 {
-    // Same backend + same web app as the website and the Android app.
-    // Override with GADAVIRAL_WEB_APP_URL (dev: http://localhost:5173).
+    // Same backend + same web app as the website. Loads the deployed SPA path
+    // directly (the site root also redirects to it). Dev override:
+    // GADAVIRAL_WEB_APP_URL=http://localhost:5173/app/
     private static readonly string WebAppUrl =
         Environment.GetEnvironmentVariable("GADAVIRAL_WEB_APP_URL")
-        ?? "https://www.gadaviral.com";
+        ?? "https://www.gadaviral.com/app/";
 
     public MainWindow()
     {

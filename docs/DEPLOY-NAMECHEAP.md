@@ -11,7 +11,48 @@ STAGING        https://staging.gadaviral.com/app/          →  https://staging.
 PRODUCTION     https://www.gadaviral.com/app/              →  https://www.gadaviral.com/wp-json/gadaviral/v1/
 ```
 
-## 0. What to upload (two artefacts)
+## 0. Production go-live fix (homepage white page — 2026-09)
+
+Status found on https://www.gadaviral.com:
+
+| Check | Result |
+|---|---|
+| `GET /` (homepage) | **Empty HTML (0 bytes) — the white page** |
+| `GET /wp-json/gadaviral/v1/health` | **404 — the GADAVIRAL API plugin is not uploaded/activated in production** |
+| `GET /app/` | SPA deployed (but pre-fix builds broke on refresh — fixed by the router change) |
+
+Apply these three steps in order:
+
+1. **Activate the GADAVIRAL API plugin in production** (without it the app has
+   no data source). WP Admin (www.gadaviral.com) → Plugins → Add New → Upload
+   Plugin → `wordpress/gadaviral-api/gadaviral-api.zip` → Install → **Activate**
+   (activation creates all tables — non-destructive, `CREATE TABLE IF NOT EXISTS`).
+   Verify: `curl https://www.gadaviral.com/wp-json/gadaviral/v1/health`
+   → `{"ok":true,"source":"wordpress-gadaviral-api"}`
+
+2. **Make the homepage show the app** — pick ONE of:
+   - **Redirect (1 file, simplest):** in cPanel File Manager replace
+     `/public_html/index.html` (the empty file causing the white page) with
+     `deploy/root-index.html` — visitors land on the app at `/app/`.
+   - **Clean URL (`.htaccess`):** paste the block from
+     `deploy/root-htaccess-addition.txt` **above** the `# BEGIN WordPress` line
+     in `/public_html/.htaccess` — the app serves directly on the root URL and
+     all WordPress paths keep working.
+
+3. **Verify** from any machine:
+
+   ```bash
+   curl -s https://www.gadaviral.com/                 # → app HTML or redirect (no longer empty)
+   curl -s https://www.gadaviral.com/wp-json/gadaviral/v1/health
+   curl -s -o /dev/null -w "%{http_code}" https://www.gadaviral.com/app/feed   # → 200
+   ```
+
+The Windows app (`windows/`) loads `https://www.gadaviral.com/app/` directly,
+so it works as soon as step 1 is done. Router note: the SPA derives its router
+base from the URL (`/app` under `/app/`, `/` at the root), so refreshes and
+deep links work in both locations.
+
+## 1. What to upload (two artefacts)
 
 | Artefact | Source in repo | Deploy package |
 |---|---|---|
@@ -26,7 +67,7 @@ Compress-Archive -Path web\dist\* -DestinationPath web\dist.zip -Force
 Compress-Archive -Path wordpress\gadaviral-api\gadaviral-api.php -DestinationPath wordpress\gadaviral-api\gadaviral-api.zip -Force
 ```
 
-## 1. PHP syntax validation (staging / server)
+## 2. PHP syntax validation (staging / server)
 
 PHP CLI is not available on the dev workstation. On any machine with PHP
 (Namecheap cPanel terminal has PHP), run:
@@ -40,7 +81,7 @@ php -l ~/public_html/staging/wp-content/plugins/gadaviral-api/gadaviral-api.php
 Expected output: `No syntax errors detected`. WordPress also refuses to
 activate plugin files with fatal parse errors, which acts as a second gate.
 
-## 2. Staging deployment
+## 3. Staging deployment
 
 Target paths on Namecheap (staging WP is installed under `/public_html/staging/`):
 
@@ -76,7 +117,7 @@ Steps (cPanel File Manager):
    (stale/authenticated responses would be served to the wrong user). LiteSpeed
    Cache → Cache → Excludes: add `wp-json/gadaviral`.
 
-## 3. Production deployment (Namecheap, www.gadaviral.com)
+## 4. Production deployment (Namecheap, www.gadaviral.com)
 
 | File | Destination |
 |---|---|
@@ -105,7 +146,7 @@ Steps (cPanel File Manager):
    `wp option update gadv_jwt_secret "$(openssl rand -hex 32)"`
    (If skipped, the plugin auto-generates and stores one on first use.)
 
-## 4. Data migration (PostgreSQL → WordPress)
+## 5. Data migration (PostgreSQL → WordPress)
 
 ⚠️ **Never run against production without a backup.** All migration tooling is
 **additive and idempotent** — it only inserts mapped rows, never drops/truncates.
@@ -121,7 +162,7 @@ Steps (cPanel File Manager):
 Full runbook: `docs/MIGRATION-GUIDE.md`. Nothing is deleted; re-running import
 steps skips already-migrated rows via the mapping files.
 
-## 5. Verification tooling
+## 6. Verification tooling
 
 ```powershell
 # Route-compatibility audit (must stay 67/67):

@@ -1,0 +1,27 @@
+# ============================================================================
+# GADAVIRAL app at the site root  (add to /public_html/.htaccess)
+# ============================================================================
+# Paste this block ABOVE the "# BEGIN WordPress" line in the existing
+# /public_html/.htaccess (cPanel → File Manager → Settings → Show hidden files).
+#
+# Effect: the React app serves directly on https://www.gadaviral.com/ (no URL
+# redirect) and on every SPA route below, while ALL WordPress paths
+# (wp-admin, wp-login.php, wp-json, wp-content, wp-includes, wp-cron.php,
+# xmlrpc.php, ...) keep working exactly as before.
+#
+# Use EITHER this block (clean root URL) OR deploy/root-index.html (redirect
+# to /app/) — no need for both.
+# ============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1. Homepage → the app (internal rewrite; the URL stays the clean root)
+  RewriteRule ^/?$ /app/index.html [L]
+
+  # 2. SPA deep links → the app. Only whitelisted app routes are rewritten;
+  #    anything else (and every wp-* path) falls through to WordPress.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(login|register|verify|verified|reset-password|auth/google/complete|feed|explore|post(/.*)?|u(/.*)?|notifications|messages|groups(/.*)?|events|businesses|settings|admin)/?$ /app/index.html [L]
+</IfModule>
