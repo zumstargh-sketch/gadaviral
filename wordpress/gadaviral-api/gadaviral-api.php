@@ -495,14 +495,30 @@ function gadv_google_client_ids() {
 	]));
 }
 
-/** SPA origins allowed to receive the post-login redirect. */
-function gadv_google_spa_origins() {
-	return [
-		'www.gadaviral.com' => 'https://www.gadaviral.com',
-		'gadaviral.com' => 'https://gadaviral.com',
-		'staging.gadaviral.com' => 'https://staging.gadaviral.com',
-		'localhost:5173' => 'http://localhost:5173',
-	];
+/**
+ * SPA base allowed to receive the post-login redirect, derived from the Referer
+ * the user started from. Production: https://www.gadaviral.com (or apex),
+ * staging subdirectory install: https://gadaviral.com/staging/app,
+ * local dev: http://localhost:5173.
+ */
+function gadv_google_spa_base($referer) {
+	$parts = parse_url((string) $referer);
+	if (!$parts || empty($parts['host'])) return 'https://www.gadaviral.com';
+	$host = strtolower($parts['host']);
+	$scheme = (!isset($parts['scheme']) || $parts['scheme'] === 'https') ? 'https' : 'http';
+	$authority = $host . (isset($parts['port']) ? ':' . $parts['port'] : '');
+	if ($host === 'localhost' && isset($parts['port']) && intval($parts['port']) === 5173) {
+		return 'http://localhost:5173';
+	}
+	if (in_array($authority, ['www.gadaviral.com', 'gadaviral.com'], true)) {
+		$path = isset($parts['path']) ? (string) $parts['path'] : '';
+		// Staging lives in a subdirectory of the main site (…/staging/app/).
+		if (strpos($path, '/staging') === 0) {
+			return $scheme . '://' . $authority . '/staging/app';
+		}
+		return $scheme . '://' . $authority;
+	}
+	return 'https://www.gadaviral.com';
 }
 
 /** Build the Google authorization URL (auth-code flow). */
@@ -513,14 +529,9 @@ function gadv_auth_google_url($request) {
 	}
 	$state = bin2hex(random_bytes(16));
 	// Remember where the user came from (whitelisted) so the callback returns
-	// them to the right SPA origin (www / apex / staging / localhost dev).
-	$base = 'https://www.gadaviral.com';
+	// them to the right SPA (www / apex / staging subdirectory / localhost dev).
 	$ref = isset($_SERVER['HTTP_REFERER']) ? (string) $_SERVER['HTTP_REFERER'] : '';
-	if ($ref) {
-		$host = parse_url($ref, PHP_URL_HOST);
-		$origins = gadv_google_spa_origins();
-		if ($host && isset($origins[$host])) $base = $origins[$host];
-	}
+	$base = gadv_google_spa_base($ref);
 	set_transient('gadv_goog_state_' . $state, $base, 10 * MINUTE_IN_SECONDS);
 	$args = [
 		'client_id' => $client,

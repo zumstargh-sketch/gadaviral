@@ -5,7 +5,7 @@
  * Tests the REAL deployed API over HTTP. Run against STAGING only:
  *
  *   node scripts/staging_runtime_test.js
- *   node scripts/staging_runtime_test.js --base https://staging.gadaviral.com
+ *   node scripts/staging_runtime_test.js --base https://gadaviral.com/staging
  *
  * Optional credentials enable the authenticated flow tests (login, refresh
  * rotation, logout, /auth/me, reports, protected GET/POST, upload):
@@ -15,17 +15,21 @@
  *
  * Everything it creates is prefixed with "[runtime-test]" and is safe to leave
  * on staging. It never deletes or modifies real content. Never point this at
- * production (add --allow-production if you truly must; it will refuse otherwise).
+ * production (staging lives at https://gadaviral.com/staging — the base URL
+ * must contain /staging; add --allow-production if you truly must, it will
+ * refuse otherwise).
  */
 
 const BASE = (() => {
   const i = process.argv.indexOf('--base');
-  const b = i > -1 ? process.argv[i + 1] : (process.env.GADV_BASE_URL || 'https://staging.gadaviral.com');
+  const b = i > -1 ? process.argv[i + 1] : (process.env.GADV_BASE_URL || 'https://gadaviral.com/staging');
   return (b || '').replace(/\/+$/, '');
 })();
 
-if (/www\.gadaviral\.com/i.test(BASE) && !process.argv.includes('--allow-production')) {
-  console.error('REFUSING to run against production (' + BASE + '). Use staging.');
+// Staging is a SUBDIRECTORY of the main domain (https://gadaviral.com/staging),
+// so the same host serves production. Require the /staging path to run.
+if (!/\/staging(\/|$)/i.test(BASE) && !process.argv.includes('--allow-production')) {
+  console.error('REFUSING to run against production (' + BASE + '). The base URL must contain /staging.');
   process.exit(2);
 }
 

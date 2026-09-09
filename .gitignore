@@ -57,3 +57,6 @@ backend/*.txt
 backend/srv-*.txt
 backend/verify-out.txt
 web/tsconfig.tsbuildinfo
+
+# Staging SPA build
+web/dist-staging/

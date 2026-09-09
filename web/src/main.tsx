@@ -7,11 +7,13 @@ import './styles.css';
 
 setTimeout(() => document.getElementById('splash')?.classList.add('hidden'), 900);
 
-// The SPA is served from TWO roots in production: https://www.gadaviral.com/
-// (site homepage) and https://www.gadaviral.com/app/. Derive the router base
-// from the current URL so routes, links and refresh-safe deep links work in
-// both places (assets always load from /app/ via the Vite base config).
-const routerBase = window.location.pathname.startsWith('/app') ? '/app' : '/';
+// The SPA is served from THREE roots: https://www.gadaviral.com/ (site
+// homepage), https://www.gadaviral.com/app/ (production app) and
+// https://gadaviral.com/staging/app/ (staging). Derive the router base from
+// the current URL so routes, links and refresh-safe deep links work in every
+// location (assets always load via the Vite base of the respective build).
+const p = window.location.pathname;
+const routerBase = p.startsWith('/staging/app') ? '/staging/app' : p.startsWith('/app') ? '/app' : '/';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

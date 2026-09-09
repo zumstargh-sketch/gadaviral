@@ -7,7 +7,7 @@
 // Development: `npm run dev` serves the UI on http://localhost:5173/app/ and the
 // Vite dev server proxies /wp-json to the STAGING WordPress API (see
 // vite.config.ts). The browser only ever talks to its own origin — no CORS
-// involved — and requests land on https://staging.gadaviral.com/wp-json/gadaviral/v1.
+// involved — and requests land on https://gadaviral.com/staging/wp-json/gadaviral/v1.
 //
 // Optional override: set VITE_API_BASE (e.g. in web/.env.local) to point the UI
 // directly at any API origin. Leave it unset for the behaviour above.

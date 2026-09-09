@@ -6,8 +6,8 @@ served by Namecheap hosting; the backend/database is **WordPress**
 dependency in production.
 
 ```
-LOCAL DEV      http://localhost:5173/app/  ──vite proxy──▶  https://staging.gadaviral.com/wp-json/gadaviral/v1/
-STAGING        https://staging.gadaviral.com/app/          →  https://staging.gadaviral.com/wp-json/gadaviral/v1/
+LOCAL DEV      http://localhost:5173/app/  ──vite proxy──▶  https://gadaviral.com/staging/wp-json/gadaviral/v1/
+STAGING        https://gadaviral.com/staging/app/          →  https://gadaviral.com/staging/wp-json/gadaviral/v1/
 PRODUCTION     https://www.gadaviral.com/app/              →  https://www.gadaviral.com/wp-json/gadaviral/v1/
 ```
 
@@ -110,39 +110,53 @@ activate plugin files with fatal parse errors, which acts as a second gate.
 
 ## 3. Staging deployment
 
-Target paths on Namecheap (staging WP is installed under `/public_html/staging/`):
+Staging is a WordPress **subdirectory install** of the main domain —
+**https://gadaviral.com/staging/** (files under `/public_html/staging/`).
+The staging SPA lives at `/staging/app/` and is a SEPARATE BUILD (it must call
+`/staging/wp-json/...`, not the production API on the same host).
 
 | File | Destination |
 |---|---|
 | `wordpress/gadaviral-api/gadaviral-api.php` | `/public_html/staging/wp-content/plugins/gadaviral-api/gadaviral-api.php` |
-| contents of `web/dist/` | `/public_html/staging/app/` |
+| contents of the **staging build** (`web/dist-staging/`) | `/public_html/staging/app/` |
 
 Steps (cPanel File Manager):
 
 1. Upload `gadaviral-api.zip` to `/public_html/staging/wp-content/plugins/`
    and use "Extract", or paste the new file contents into the existing plugin
    via Plugins → Plugin Editor. **Do not delete unrelated files.**
-2. WP Admin (staging) → Plugins → ensure **GADAVIRAL API** is Active
-   (activation is non-destructive; it only runs `CREATE TABLE IF NOT EXISTS`).
-3. Create folder `/public_html/staging/app/` and upload the contents of
-   `web/dist/` (index.html, assets/, icons/).
-4. SPA deep links need the `/app/` fallback — add
-   `/public_html/staging/app/.htaccess` (copy of `deploy/app-htaccess.txt`):
+2. WP Admin (staging, `https://gadaviral.com/staging/wp-admin/`) → Plugins →
+   ensure **GADAVIRAL API** is Active (activation is non-destructive; it only
+   runs `CREATE TABLE IF NOT EXISTS`).
+3. Build the staging SPA (separate from production — different base + API):
+
+   ```powershell
+   cd web
+   npx vite build --mode staging --base=/staging/app/ --outDir=dist-staging
+   cd ..
+   Add-Type -AssemblyName System.IO.Compression.FileSystem
+   [IO.Compression.ZipFile]::CreateFromDirectory("$PWD\web\dist-staging", "$PWD\web\dist-staging.zip")
+   ```
+
+   Upload `web/dist-staging.zip` into `/public_html/staging/app/` → Extract.
+4. SPA deep links need the fallback — add `/public_html/staging/app/.htaccess`
+   using **Block B** from `deploy/app-htaccess.txt` (RewriteBase `/staging/app/`):
 
    ```apache
    <IfModule mod_rewrite.c>
      RewriteEngine On
-     RewriteBase /app/
+     RewriteBase /staging/app/
      RewriteRule ^index\.html$ - [L]
      RewriteCond %{REQUEST_FILENAME} !-f
      RewriteCond %{REQUEST_FILENAME} !-d
-     RewriteRule . /app/index.html [L]
+     RewriteRule . /staging/app/index.html [L]
    </IfModule>
    ```
 
-5. **Do NOT let LiteSpeed cache `/wp-json/gadaviral/v1/*` or `/app/index.html`**
-   (stale/authenticated responses would be served to the wrong user). LiteSpeed
-   Cache → Cache → Excludes: add `wp-json/gadaviral`.
+5. **Do NOT let LiteSpeed cache `/staging/wp-json/gadaviral/v1/*` or
+   `/staging/app/index.html`** (stale/authenticated responses would be served
+   to the wrong user). LiteSpeed Cache → Cache → Excludes: add
+   `staging/wp-json/gadaviral`.
 
 ## 4. Production deployment (Namecheap, www.gadaviral.com)
 
@@ -196,7 +210,7 @@ steps skips already-migrated rows via the mapping files.
 node scripts/api_compat_test.js        # writes scripts/api_compat_report.json
 
 # Live runtime verification (staging only; refuses production):
-node scripts/staging_runtime_test.js --base https://staging.gadaviral.com
+node scripts/staging_runtime_test.js --base https://gadaviral.com/staging
 # authenticated flows need credentials (use a THROWAWAY staging user):
 $env:GADV_TEST_EMAIL="..."; $env:GADV_TEST_PASSWORD="..."; node scripts/staging_runtime_test.js
 ```

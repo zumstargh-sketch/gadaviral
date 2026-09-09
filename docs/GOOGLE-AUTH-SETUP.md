@@ -33,13 +33,12 @@ GADAVIRAL implements genuine **Google OAuth 2.0 / OpenID Connect**:
 **Web application** (`gadv_google_client_id` / `gadv_google_client_secret`)
 - Authorized JavaScript origins:
   - `https://www.gadaviral.com`
-  - `https://gadaviral.com`
-  - `https://staging.gadaviral.com` (staging tests)
+  - `https://gadaviral.com` (covers staging at `/staging` — same origin)
   - `http://localhost:5173` (dev website)
 - Authorized redirect URIs (the plugin builds its own callback URL per site):
   - `https://www.gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
   - `https://gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
-  - `https://staging.gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
+  - `https://gadaviral.com/staging/wp-json/gadaviral/v1/auth/google/callback`
 
 **Android** (`gadv_google_android_client_id`)
 - Package name: `com.gadaviral.app`

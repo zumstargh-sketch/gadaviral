@@ -1,5 +1,12 @@
-# GADAVIRAL SPA fallback — place at /public_html/app/.htaccess (or /public_html/staging/app/.htaccess)
-# Ensures React deep links like /app/feed, /app/u/<username> resolve to index.html.
+# GADAVIRAL SPA fallback .htaccess — TWO variants, use the one for the target:
+#
+#   PRODUCTION  → place at /public_html/app/.htaccess        (block A, unchanged)
+#   STAGING     → place at /public_html/staging/app/.htaccess (block B)
+#
+# Ensures React deep links like /feed, /u/<username> resolve to index.html.
+# Never cache the SPA shell (asset filenames are hashed instead).
+
+# ── Block A: PRODUCTION (/app/) ─────────────────────────────────────────────
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /app/
@@ -8,10 +15,23 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /app/index.html [L]
 </IfModule>
-
-# Never cache the SPA shell (asset filenames are hashed instead)
 <IfModule mod_headers.c>
   <FilesMatch "index\.html$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
+
+# ── Block B: STAGING (/staging/app/) — use INSTEAD of block A there ─────────
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteBase /staging/app/
+#   RewriteRule ^index\.html$ - [L]
+#   RewriteCond %{REQUEST_FILENAME} !-f
+#   RewriteCond %{REQUEST_FILENAME} !-d
+#   RewriteRule . /staging/app/index.html [L]
+# </IfModule>
+# <IfModule mod_headers.c>
+#   <FilesMatch "index\.html$">
+#     Header set Cache-Control "no-cache, must-revalidate"
+#   </FilesMatch>
+# </IfModule>
