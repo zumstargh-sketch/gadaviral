@@ -455,18 +455,23 @@ function gadv_auth_verify_otp($request) {
 	return new WP_Error('invalid', 'Invalid OTP', ['status' => 400]);
 }
 
-function gadv_auth_resend_verification($request) {
+/** Generate, store and email a 6-digit verification OTP (10-minute validity). */
+function gadv_send_verification_otp($user_id, $email) {
 	global $wpdb;
+	$otp = rand(100000, 999999);
+	$hash = wp_hash_password((string) $otp);
+	$expires = date('Y-m-d H:i:s', time() + 600);
+	$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user_id, 'purpose' => 'OTP_VERIFY', 'otp' => $otp, 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
+	wp_mail($email, 'GADAVIRAL verification code', "Welcome to GADAVIRAL!\n\nYour verification code is: $otp\n\nEnter it in the app to activate your account. This code expires in 10 minutes.\n\nIf you did not create an account, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+}
+
+function gadv_auth_resend_verification($request) {
 	$body = json_decode($request->get_body(), true);
 	$email = sanitize_email($body['email'] ?? '');
 	if (!$email) return new WP_Error('invalid', 'Email required', ['status' => 400]);
 	$user = get_user_by('email', $email);
 	if (!$user) return rest_ensure_response(['ok' => true]);
-	$otp = rand(100000,999999);
-	$hash = wp_hash_password((string)$otp);
-	$expires = date('Y-m-d H:i:s', time() + 600);
-	$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user->ID, 'purpose' => 'OTP_VERIFY', 'otp' => $otp, 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql',1)]);
-	wp_mail($email, 'GADAVIRAL verification code', "Your verification code is: $otp\n\nThis code expires in 10 minutes.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	gadv_send_verification_otp($user->ID, $email);
 	return rest_ensure_response(['ok' => true]);
 }
 
@@ -2278,6 +2283,9 @@ function gadv_auth_register($request) {
 	$user_id = wp_create_user($username, $password, $email);
 	if (is_wp_error($user_id)) return $user_id;
 	if (!empty($full_name)) wp_update_user(['ID' => $user_id, 'display_name' => $full_name]);
+	// Send the first verification email immediately (the SPA's verify page
+	// tells the user a code was sent; resend-verification covers lost mail).
+	gadv_send_verification_otp($user_id, $email);
 	// Return tokens like login
 	$user_obj = get_userdata($user_id);
 	$access = gadv_jwt_encode(['sub' => $user_id, 'email' => $email], 900);
