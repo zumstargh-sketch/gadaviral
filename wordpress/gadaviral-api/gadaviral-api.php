@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -793,15 +793,13 @@ function gadv_google_settings_page() {
 				<tr><th>Android client ID <span class="description">(optional — for the APK later)</span></th><td><input class="regular-text" type="text" name="gadv_google_android_client_id" value="<?php echo esc_attr(get_option('gadv_google_android_client_id')); ?>" /></td></tr>
 				<tr><th>Desktop client ID <span class="description">(optional — for the Windows app later)</span></th><td><input class="regular-text" type="text" name="gadv_google_desktop_client_id" value="<?php echo esc_attr(get_option('gadv_google_desktop_client_id')); ?>" /></td></tr>
 			</table>
-			<?php submit_button('Save Google settings'); ?>
-		</form>
 
-		<hr />
-		<h2>Email (SMTP) — verification codes &amp; password resets</h2>
-		<p><strong>Active transport:</strong> <code><?php echo esc_html(gadv_mail_transport()); ?></code></p>
-		<p>Create the mailbox first (cPanel → Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
-			Namecheap: host <code>mail.gadaviral.com</code>, port <code>465</code>, encryption <code>ssl</code>.
-			Leave the host empty to fall back to PHP mail().</p>
+			<hr />
+			<h2>Email (SMTP) — verification codes &amp; password resets</h2>
+			<p><strong>Active transport:</strong> <code><?php echo esc_html(gadv_mail_transport()); ?></code></p>
+			<p>Create the mailbox first (cPanel → Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
+				Namecheap: host <code>mail.gadaviral.com</code>, port <code>465</code>, encryption <code>ssl</code>.
+				Leave the host empty to fall back to PHP mail().</p>
 		<?php if ($test_done): ?>
 			<div class="notice <?php echo $test_ok ? 'notice-success' : 'notice-error'; ?> is-dismissible">
 				<p><?php
@@ -814,8 +812,6 @@ function gadv_google_settings_page() {
 				?></p>
 			</div>
 		<?php endif; ?>
-		<form method="post" action="options.php">
-			<?php settings_fields('gadv_google'); ?>
 			<table class="form-table" role="presentation">
 				<tr><th>SMTP host</th><td><input class="regular-text" type="text" name="gadv_smtp_host" value="<?php echo esc_attr(get_option('gadv_smtp_host')); ?>" placeholder="mail.gadaviral.com" /></td></tr>
 				<tr><th>Port</th><td><input type="number" name="gadv_smtp_port" value="<?php echo esc_attr(get_option('gadv_smtp_port') ?: 465); ?>" /></td></tr>
@@ -827,7 +823,7 @@ function gadv_google_settings_page() {
 				<tr><th>Username <span class="description">(the mailbox = the From address)</span></th><td><input class="regular-text" type="text" name="gadv_smtp_username" value="<?php echo esc_attr(get_option('gadv_smtp_username')); ?>" placeholder="admin@gadaviral.com" /></td></tr>
 				<tr><th>Password</th><td><input class="regular-text" type="password" name="gadv_smtp_password" value="<?php echo esc_attr(get_option('gadv_smtp_password')); ?>" autocomplete="new-password" /></td></tr>
 			</table>
-			<?php submit_button('Save email settings'); ?>
+			<?php submit_button('Save settings (Google + Email)'); ?>
 		</form>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_smtp_test" />
