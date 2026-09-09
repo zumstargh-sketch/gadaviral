@@ -31,9 +31,12 @@
   # 1. Homepage → the app (internal rewrite; the URL stays the clean root)
   RewriteRule ^/?$ /app/index.html [L]
 
-  # 2. SPA deep links → the app. Only whitelisted app routes are rewritten;
-  #    anything else (and every wp-* path) falls through to WordPress.
+  # 2. App paths + SPA deep links → the app. The conditions let real files
+  #    (the app's own /app/assets/*.js, CSS, icons, ...) pass through
+  #    untouched; every wp-* path and anything unknown falls through to
+  #    WordPress. The app/? alternative also makes /app/... deep links and
+  #    refreshes work without relying on the /app/.htaccess fallback.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(login|register|verify|verified|reset-password|auth/google/complete|feed|explore|post(/.*)?|u(/.*)?|notifications|messages|groups(/.*)?|events|businesses|settings|admin)/?$ /app/index.html [L]
+  RewriteRule ^(app/?|login|register|verify|verified|reset-password|auth/google/complete|feed|explore|post(/.*)?|u(/.*)?|notifications|messages|groups(/.*)?|events|businesses|settings|admin)(/.*)?$ /app/index.html [L]
 </IfModule>
