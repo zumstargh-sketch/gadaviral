@@ -1,8 +1,15 @@
 # Dependencies
 node_modules/
-web/dist/
+web/dist/*
+!web/dist/index.html
+!web/dist/assets/
 backend/dist/
 .vs/
+
+# Regenerable deployment packages (see docs/DEPLOY-NAMECHEAP.md §0)
+web/dist.zip
+wordpress/gadaviral-api/gadaviral-api.zip
+
 
 # Environment & secrets
 .env

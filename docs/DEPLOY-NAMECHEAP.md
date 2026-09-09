@@ -1,92 +1,141 @@
-# Deploying GADAVIRAL to your hosting (replacing / sitting beside WordPress)
+# GADAVIRAL — Namecheap Deployment Guide (WordPress architecture)
 
-**Why gadaviral.com currently shows WordPress:** the old WordPress site is what
-your hosting serves today. The GADAVIRAL app (website + API) is a Node.js
-application + built static frontend in this repository — it must be uploaded to
-the host once, following the steps below. Nothing in the code needs to change.
-
-The app is deployed as **one Node.js service** that serves everything from a
-single origin:
+This is the **authoritative** deployment guide. The app is a static React SPA
+served by Namecheap hosting; the backend/database is **WordPress**
+(`gadaviral-api` plugin). There is **no** Node backend, PostgreSQL or Render
+dependency in production.
 
 ```
-https://your-host  →  Node app (backend)
-   /                →  website SPA (web/dist — upload the built folder)
-   /api/v1/*        →  REST API
-   /media/*         →  images/uploads
-   /socket.io/*     →  realtime
+LOCAL DEV      http://localhost:5173/app/  ──vite proxy──▶  https://staging.gadaviral.com/wp-json/gadaviral/v1/
+STAGING        https://staging.gadaviral.com/app/          →  https://staging.gadaviral.com/wp-json/gadaviral/v1/
+PRODUCTION     https://www.gadaviral.com/app/              →  https://www.gadaviral.com/wp-json/gadaviral/v1/
 ```
 
-## Option A — subdomain first (safest, keeps WordPress at www)
+## 0. What to upload (two artefacts)
 
-1. **Build locally** (on your PC):
-   ```powershell
-   cd web;  npx vite build        # produces web/dist
-   cd ..\backend; npm run build   # produces backend/dist
-   ```
-2. **Create a database** — cPanel → *PostgreSQL Databases*: create `gadaviral`
-   + user, grant all. Note the connection string:
-   `postgres://USER:PASSWORD@127.0.0.1:5432/gadaviral`
-3. **cPanel → Setup Node.js App**:
-   - Node version: 20+
-   - Application root: `gadaviral` (folder in your home dir)
-   - Application URL: create/choose `app.gadaviral.com` (subdomain)
-   - Application startup file: `dist/src/index.js`
-4. **Upload** the repo to that folder (cPanel File Manager zip upload, or Git):
-   - `backend/` (including `dist/`, `migrations/`, `package.json`)
-   - `web/dist/`
-5. In the Node.js App page: **Environment variables**
-   ```
-   NODE_ENV=production
-   PORT=4000                      (cPanel assigns one — use theirs)
-   DATABASE_URL=postgres://...    (from step 2)
-   JWT_ACCESS_SECRET=<64 random chars>
-   WEB_APP_URL=https://app.gadaviral.com
-   CORS_ORIGINS=https://app.gadaviral.com
-   SMTP_HOST=mail.gadaviral.com
-   SMTP_USER=admin@gadaviral.com
-   SMTP_PASSWORD=<mailbox password>
-   SMTP_FROM_EMAIL=admin@gadaviral.com
-   SMTP_FROM_NAME=GADAVIRAL
-   GOOGLE_CLIENT_ID=...           GOOGLE_CLIENT_SECRET=...
-   GOOGLE_CALLBACK_URL=https://app.gadaviral.com/api/v1/auth/google/callback
-   ```
-   Then **Run NPM Install**, then open the cPanel terminal →
-   `cd ~/gadaviral/backend && npm run migrate && npm run seed:demo` and
-   **Restart** the app.
-6. **Google OAuth**: add `https://app.gadaviral.com` to the authorized origins
-   and the callback URL above to the redirect URIs (docs/GOOGLE-AUTH-SETUP.md).
+| Artefact | Source in repo | Deploy package |
+|---|---|---|
+| Frontend SPA | `web/dist/` (built with `npm run build` in `web/`) | `web/dist.zip` |
+| WordPress plugin | `wordpress/gadaviral-api/gadaviral-api.php` | `wordpress/gadaviral-api/gadaviral-api.zip` |
 
-## Option B — replace the WordPress homepage entirely
-
-Same as Option A but point the **main domain** at the Node app instead of a
-subdomain: in cPanel the Node app's Application URL can be the domain; if the
-domain's document root currently contains WordPress, move WordPress to a
-folder/subdomain (e.g. `old.gadaviral.com`) and set the app root as the
-domain's document root (cPanel → Domains → document root), or proxy:
-`.htaccess` in public_html → `RewriteRule ^(.*)$ http://127.0.0.1:PORT/$1 [P]`
-(requires mod_proxy — available on most Namecheap plans).
-
-> Shared-hosting note: cPanel Node apps run via Passenger. If PostgreSQL is
-> not included in your plan, use a free managed Postgres (Neon/Supabase) and
-> set `DATABASE_SSL=true`.
-
-## After deploying
-
-- `npm run create-admin -- admin@gadaviral.com "GADAVIRAL Admin" "<password>"`
-- Rebuild the Android app against the real host:
-  `gradlew -PAPI_BASE_URL=https://app.gadaviral.com assembleDebug`
-- The Windows app already defaults to `https://www.gadaviral.com` — once the
-  app is live on the main domain it works with zero changes.
-
-## Phone testing WITHOUT hosting (today)
-
-Run the stack on your PC and open a free Cloudflare quick tunnel:
+Rebuild/repackage any time:
 
 ```powershell
-powershell -File scripts\tunnel.ps1     # prints a public https URL
-# then rebuild the APK with that URL:
-cd android; gradlew.bat -PAPI_BASE_URL=<printed-url> assembleDebug
+cd web; npm run build; cd ..
+Compress-Archive -Path web\dist\* -DestinationPath web\dist.zip -Force
+Compress-Archive -Path wordpress\gadaviral-api\gadaviral-api.php -DestinationPath wordpress\gadaviral-api\gadaviral-api.zip -Force
 ```
 
-Quick-tunnel URLs are temporary (they change each run) — use them for testing;
-use Option A/B for the real deployment.
+## 1. PHP syntax validation (staging / server)
+
+PHP CLI is not available on the dev workstation. On any machine with PHP
+(Namecheap cPanel terminal has PHP), run:
+
+```bash
+php -l wordpress/gadaviral-api/gadaviral-api.php
+# cPanel terminal equivalent:
+php -l ~/public_html/staging/wp-content/plugins/gadaviral-api/gadaviral-api.php
+```
+
+Expected output: `No syntax errors detected`. WordPress also refuses to
+activate plugin files with fatal parse errors, which acts as a second gate.
+
+## 2. Staging deployment
+
+Target paths on Namecheap (staging WP is installed under `/public_html/staging/`):
+
+| File | Destination |
+|---|---|
+| `wordpress/gadaviral-api/gadaviral-api.php` | `/public_html/staging/wp-content/plugins/gadaviral-api/gadaviral-api.php` |
+| contents of `web/dist/` | `/public_html/staging/app/` |
+
+Steps (cPanel File Manager):
+
+1. Upload `gadaviral-api.zip` to `/public_html/staging/wp-content/plugins/`
+   and use "Extract", or paste the new file contents into the existing plugin
+   via Plugins → Plugin Editor. **Do not delete unrelated files.**
+2. WP Admin (staging) → Plugins → ensure **GADAVIRAL API** is Active
+   (activation is non-destructive; it only runs `CREATE TABLE IF NOT EXISTS`).
+3. Create folder `/public_html/staging/app/` and upload the contents of
+   `web/dist/` (index.html, assets/, icons/).
+4. SPA deep links need the `/app/` fallback — add
+   `/public_html/staging/app/.htaccess` (copy of `deploy/app-htaccess.txt`):
+
+   ```apache
+   <IfModule mod_rewrite.c>
+     RewriteEngine On
+     RewriteBase /app/
+     RewriteRule ^index\.html$ - [L]
+     RewriteCond %{REQUEST_FILENAME} !-f
+     RewriteCond %{REQUEST_FILENAME} !-d
+     RewriteRule . /app/index.html [L]
+   </IfModule>
+   ```
+
+5. **Do NOT let LiteSpeed cache `/wp-json/gadaviral/v1/*` or `/app/index.html`**
+   (stale/authenticated responses would be served to the wrong user). LiteSpeed
+   Cache → Cache → Excludes: add `wp-json/gadaviral`.
+
+## 3. Production deployment (Namecheap, www.gadaviral.com)
+
+| File | Destination |
+|---|---|
+| `wordpress/gadaviral-api/gadaviral-api.php` | `/public_html/wp-content/plugins/gadaviral-api/gadaviral-api.php` |
+| contents of `web/dist/` | `/public_html/app/` |
+| `.htaccess` (SPA fallback, `RewriteBase /app/`) | `/public_html/app/.htaccess` |
+
+1. **Backup first** (cPanel → Backup → Download a Full Account Backup, or
+   WP-CLI: `wp db export backup-before-gadv-$(date +%F).sql`).
+2. Upload the plugin file (overwrite only `gadaviral-api/gadaviral-api.php`).
+   Do not touch any other production file.
+3. Activate the plugin in WP Admin if it is not already active.
+4. Upload `web/dist/*` into `/public_html/app/` (new folder; nothing existing
+   is overwritten).
+5. Add the `.htaccess` SPA fallback above.
+6. Verify from any machine that can reach the site:
+
+   ```bash
+   curl -s https://www.gadaviral.com/wp-json/gadaviral/v1/health
+   # → {"ok":true,"source":"wordpress-gadaviral-api"}
+   curl -s -o /dev/null -w "%{http_code}" https://www.gadaviral.com/app/
+   # → 200
+   ```
+
+7. Set a strong JWT secret once (WP-CLI): 
+   `wp option update gadv_jwt_secret "$(openssl rand -hex 32)"`
+   (If skipped, the plugin auto-generates and stores one on first use.)
+
+## 4. Data migration (PostgreSQL → WordPress)
+
+⚠️ **Never run against production without a backup.** All migration tooling is
+**additive and idempotent** — it only inserts mapped rows, never drops/truncates.
+
+| Step | Tool | Runs on |
+|---|---|---|
+| 1. Export old PostgreSQL | `node scripts/pg_export_example.js` (needs old `DATABASE_URL`) | dev machine with DB access |
+| 2. Review mapping | `docs/DATABASE-MAPPING.md`, `scripts/mappings/DATABASE_TABLES_MAPPING.md` | — |
+| 3. Import into WP | `wp eval-file scripts/wp_importer_runner.php` (or `.\scripts\run_wp_migration.ps1 -Step importer`) | server w/ WP-CLI |
+| 4. Media fetch/import | `wp eval-file scripts/media_migrate_helper.php` (writes `scripts/media_mappings.json`) | server w/ WP-CLI |
+| 5. Verify | row counts, one imported user login, `/posts`, `/community/highlights` | staging |
+
+Full runbook: `docs/MIGRATION-GUIDE.md`. Nothing is deleted; re-running import
+steps skips already-migrated rows via the mapping files.
+
+## 5. Verification tooling
+
+```powershell
+# Route-compatibility audit (must stay 67/67):
+node scripts/api_compat_test.js        # writes scripts/api_compat_report.json
+
+# Live runtime verification (staging only; refuses production):
+node scripts/staging_runtime_test.js --base https://staging.gadaviral.com
+# authenticated flows need credentials (use a THROWAWAY staging user):
+$env:GADV_TEST_EMAIL="..."; $env:GADV_TEST_PASSWORD="..."; node scripts/staging_runtime_test.js
+```
+
+The runtime test covers: health, posts (pagination meta), community highlights,
+search, events, groups, businesses, auth guard, login, refresh + rotation,
+old-token rejection, logout, revoked-token rejection, /auth/me (flat fields +
+user/profile), POST /reports, protected GET, protected write, media upload and
+a group create/join/leave round-trip.
+

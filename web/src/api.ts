@@ -1,29 +1,23 @@
 // Central API configuration — the ONLY place that knows where the API lives.
 //
-// Production: the app is served from https://www.gadaviral.com and uses a
-// root-relative namespace so in-production requests resolve to
+// Production: the app is served from https://www.gadaviral.com/app/ and uses a
+// root-relative namespace, so requests resolve to the SAME-ORIGIN WordPress API:
 //   https://www.gadaviral.com/wp-json/gadaviral/v1/
 //
-// Development (local): if you run the SPA on localhost for development the
-// UI will point at the live website backend so local testing uses the real
-// API. This makes local UI behave like the deployed app without needing a
-// separate local API. If you prefer the original root-relative behaviour,
-// change the condition below or set a VITE_API_BASE in your dev environment.
+// Development: `npm run dev` serves the UI on http://localhost:5173/app/ and the
+// Vite dev server proxies /wp-json to the STAGING WordPress API (see
+// vite.config.ts). The browser only ever talks to its own origin — no CORS
+// involved — and requests land on https://staging.gadaviral.com/wp-json/gadaviral/v1.
+//
+// Optional override: set VITE_API_BASE (e.g. in web/.env.local) to point the UI
+// directly at any API origin. Leave it unset for the behaviour above.
+// NEVER commit real secrets — everything in VITE_* is public to the browser.
 
 const PROD_API = '/wp-json/gadaviral/v1';
-const LIVE_API = 'https://www.gadaviral.com/wp-json/gadaviral/v1';
 
-function isLocalhost() {
-  try {
-    if (typeof window === 'undefined') return false;
-    const host = window.location.hostname;
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  } catch {
-    return false;
-  }
-}
+const envBase = import.meta.env?.VITE_API_BASE || '';
 
-export const API_BASE = isLocalhost() ? LIVE_API : PROD_API;
+export const API_BASE = envBase || PROD_API;
 
 /** Build an absolute URL for a namespaced API path, e.g. apiUrl('auth/login'). */
 export function apiUrl(path: string): string {

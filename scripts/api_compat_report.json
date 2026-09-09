@@ -1,0 +1,1743 @@
+{
+  "calls": [
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\auth.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\auth.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/moderation/queue",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/moderation/reports/${id}/handle",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/moderation/posts/${id}/${action}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/audit-logs?limit=50",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/demo/stats",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/demo/verify",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/demo/seed",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/demo/wipe",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/users?q=${encodeURIComponent(q",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/${id}/status",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/${u.id}/verify",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/posts",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+    },
+    {
+      "method": "UPLOAD",
+      "path": "/posts/media",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/posts",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+    },
+    {
+      "method": "PUT",
+      "path": "/posts/${post.id}/react",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/posts/${post.id}/vote",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/posts/${post.id}/share",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/me",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+    },
+    {
+      "method": "UPLOAD",
+      "path": "/users/me/${kind}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/change-password",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/change-email",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/users/me/blocks",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+    },
+    {
+      "method": "DEL",
+      "path": "/users/${username}/block",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/users/me/deactivate",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/google/url",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\ui.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/analytics",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Admin.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/businesses?q=${encodeURIComponent(q",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Businesses.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/businesses",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Businesses.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/events?limit=30",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/events/${slug}/rsvp",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/events",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/search?q=${encodeURIComponent(q",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Explore.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts?feed=${mode}&page=${p}&limit=10",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Feed.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/groups/${slug}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\GroupDetail.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts?groupId=${g.group.id}&limit=20",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\GroupDetail.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/groups?q=${encodeURIComponent(q",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/groups/${slug}/leave",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/groups/${slug}/join",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/groups",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Login.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/messages/conversations",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/messages/conversations/${id}?limit=100",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/messages/conversations/${activeId}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/messages/conversations",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/notifications?limit=50",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Notifications.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/notifications/read",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Notifications.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts/${id}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts/${id}/comments?limit=50",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/posts/${id}/comments",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts/comments/${commentId}/replies",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/users/${username}",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/posts?username=${username}&limit=20",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "DEL",
+      "path": "/users/${username}/follow",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/users/${username}/follow",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "DEL",
+      "path": "/users/${username}/block",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/users/${username}/block",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/users/${username}/mute",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/reports",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Register.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\ResetPassword.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/forgot-password",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\ResetPassword.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/dev/outbox?email=${encodeURIComponent(email",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/verify-otp",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/resend-verification",
+      "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+    }
+  ],
+  "routes": [
+    {
+      "url": "/users/(?P<username>[^/]+)/block",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<username>[^/]+)/block",
+      "methods": "DELETE",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<username>[^/]+)/mute",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/me/blocks",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/me/deactivate",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/dev/outbox",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/demo/stats",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/demo/verify",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/demo/seed",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/demo/wipe",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/users",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/users/(?P<id>\\d+)/status",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/users/(?P<id>\\d+)/verify",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/analytics",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/admin/audit-logs",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/moderation/queue",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/moderation/reports/(?P<id>\\d+)/handle",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/moderation/posts/(?P<id>\\d+)/(?P<action>[^/]+)",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/events",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/events",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/events/(?P<slug>[^/]+)/rsvp",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/comments",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/comments",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<id>[^/]+)/follow",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<id>[^/]+)/unfollow",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<id>[^/]+)/follow",
+      "methods": "DELETE",
+      "permission_callback": null
+    },
+    {
+      "url": "/notifications",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/notifications/mark-read",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/notifications/read",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations/(?P<id>\\d+)/messages",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations/(?P<id>\\d+)/messages",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/messages/conversations",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/messages/conversations",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/messages/conversations/(?P<id>\\d+)",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/messages/conversations/(?P<id>\\d+)",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations/(?P<id>\\d+)/messages",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/conversations/(?P<id>\\d+)/messages",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/groups",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/groups",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/groups/(?P<slug>[^/]+)",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/groups/(?P<slug>[^/]+)/join",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/groups/(?P<slug>[^/]+)/leave",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/reports",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/polls/(?P<poll>\\d+)/vote",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/polls/(?P<poll>\\d+)",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/search",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/health",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/login",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/register",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/refresh",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/me",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/logout",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/forgot-password",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/reset-password",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/verify-otp",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/resend-verification",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/google/url",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/change-password",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/change-email",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/community/highlights",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/businesses",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/businesses",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/(?P<username>[a-zA-Z0-9_\\-]+)",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/me/(?P<kind>avatar|cover)",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/users/me",
+      "methods": "PATCH",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/react",
+      "methods": "PUT",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/vote",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/share",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/reactions",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/comments",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/(?P<id>[^/]+)/comments",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/comments/(?P<comment_id>[^/]+)/replies",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/posts/media",
+      "methods": "POST",
+      "permission_callback": null
+    }
+  ],
+  "matches": [
+    {
+      "call": {
+        "method": "GET",
+        "path": "/auth/me",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\auth.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/me",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/logout",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\auth.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/logout",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/moderation/queue",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/moderation/queue",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/moderation/reports/${id}/handle",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/moderation/reports/(?P<id>\\d+)/handle",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/moderation/posts/${id}/${action}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/moderation/posts/(?P<id>\\d+)/(?P<action>[^/]+)",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/admin/audit-logs?limit=50",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminPanels.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/audit-logs",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/admin/demo/stats",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/demo/stats",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/admin/demo/verify",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/demo/verify",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/admin/demo/seed",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/demo/seed",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/admin/demo/wipe",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/demo/wipe",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/admin/users?q=${encodeURIComponent(q",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/users",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/admin/users/${id}/status",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/users/(?P<id>\\d+)/status",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/admin/users/${u.id}/verify",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\AdminUsers.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/users/(?P<id>\\d+)/verify",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/posts",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "UPLOAD",
+        "path": "/posts/media",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/posts",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\Composer.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "PUT",
+        "path": "/posts/${post.id}/react",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)/react",
+        "methods": "PUT",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/posts/${post.id}/vote",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)/vote",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/posts/${post.id}/share",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\PostCard.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)/share",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/auth/me",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/me",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "PATCH",
+        "path": "/users/me",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[a-zA-Z0-9_\\-]+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "UPLOAD",
+        "path": "/users/me/${kind}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsProfile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/me/(?P<kind>avatar|cover)",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/change-password",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/change-password",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/change-email",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/change-email",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/users/me/blocks",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/me/blocks",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "DEL",
+        "path": "/users/${username}/block",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[^/]+)/block",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/users/me/deactivate",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\SettingsSecurity.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/me/deactivate",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/auth/google/url",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\components\\ui.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/google/url",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/admin/analytics",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Admin.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/admin/analytics",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/businesses?q=${encodeURIComponent(q",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Businesses.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/businesses",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/businesses",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Businesses.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/businesses",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/events?limit=30",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/events",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/events/${slug}/rsvp",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/events/(?P<slug>[^/]+)/rsvp",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/events",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Events.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/events",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/search?q=${encodeURIComponent(q",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Explore.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/search",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts?feed=${mode}&page=${p}&limit=10",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Feed.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/groups/${slug}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\GroupDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/groups/(?P<slug>[^/]+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts?groupId=${g.group.id}&limit=20",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\GroupDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/groups?q=${encodeURIComponent(q",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/groups",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/groups/${slug}/leave",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/groups/(?P<slug>[^/]+)/leave",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/groups/${slug}/join",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/groups/(?P<slug>[^/]+)/join",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/groups",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Groups.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/groups",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/login",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Login.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/login",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/messages/conversations",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/messages/conversations",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/messages/conversations/${id}?limit=100",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/messages/conversations/(?P<id>\\d+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/messages/conversations/${activeId}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/messages/conversations/(?P<id>\\d+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/messages/conversations",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Messages.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/messages/conversations",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/notifications?limit=50",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Notifications.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/notifications",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/notifications/read",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Notifications.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/notifications/read",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts/${id}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts/${id}/comments?limit=50",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)/comments",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/posts/${id}/comments",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/(?P<id>[^/]+)/comments",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts/comments/${commentId}/replies",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\PostDetail.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts/comments/(?P<comment_id>[^/]+)/replies",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/users/${username}",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[a-zA-Z0-9_\\-]+)",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/posts?username=${username}&limit=20",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/posts",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "DEL",
+        "path": "/users/${username}/follow",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<id>[^/]+)/follow",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/users/${username}/follow",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<id>[^/]+)/follow",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "DEL",
+        "path": "/users/${username}/block",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[^/]+)/block",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": false,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/users/${username}/block",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[^/]+)/block",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/users/${username}/mute",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/users/(?P<username>[^/]+)/mute",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/reports",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Profile.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/reports",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/register",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Register.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/register",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/reset-password",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\ResetPassword.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/reset-password",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/forgot-password",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\ResetPassword.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/forgot-password",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "GET",
+        "path": "/dev/outbox?email=${encodeURIComponent(email",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/dev/outbox",
+        "methods": "GET",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/verify-otp",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/verify-otp",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    },
+    {
+      "call": {
+        "method": "POST",
+        "path": "/auth/resend-verification",
+        "file": "C:\\Users\\I AM\\Documents\\Datila\\GADAVIRAL\\web\\src\\pages\\Verify.tsx"
+      },
+      "matched": true,
+      "route": {
+        "url": "/auth/resend-verification",
+        "methods": "POST",
+        "permission_callback": null
+      },
+      "methodMatch": true,
+      "auth": "public"
+    }
+  ],
+  "summary": {
+    "total_calls": 67,
+    "matched": 67,
+    "missing": 0
+  }
+}

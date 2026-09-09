@@ -1,0 +1,17 @@
+# GADAVIRAL SPA fallback — place at /public_html/app/.htaccess (or /public_html/staging/app/.htaccess)
+# Ensures React deep links like /app/feed, /app/u/<username> resolve to index.html.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /app/
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /app/index.html [L]
+</IfModule>
+
+# Never cache the SPA shell (asset filenames are hashed instead)
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

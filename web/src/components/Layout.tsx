@@ -1,25 +1,20 @@
+import { useState } from 'react';
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { useAuth } from '../auth.js';
-import { io } from 'socket.io-client';
-import { api } from '../api.js';
 
+// Real-time (Socket.IO) is not available on the WordPress backend. `socket`
+// stays null, so the live listeners (Messages live-append, notification toast)
+// no-op gracefully instead of hammering the API with failing socket requests.
+// Affected features (documented in the migration report):
+//   • instant "notification" toasts in Layout
+//   • instant message append in Messages
+// Both still work via normal REST loads / on-demand refreshes.
 export let socket: any = null;
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!api.accessToken) return;
-    socket = io(api.apiBase || '/', { auth: { token: api.accessToken } });
-    socket.on('notification', (n: any) => {
-      setToast(n.body ? `${n.type}: ${n.body}` : `New ${n.type.toLowerCase()}`);
-      setTimeout(() => setToast(null), 4000);
-    });
-    return () => { socket?.disconnect(); socket = null; };
-  }, [user?.id]);
 
   const navItems = [
     { to: '/feed', label: 'Feed', icon: '🏠' },

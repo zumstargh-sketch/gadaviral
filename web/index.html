@@ -23,11 +23,13 @@
   <script>
     // Show real seeded-member profile pictures on the startup splash (decorative:
     // silently skipped when the API is slow or unreachable — avatars are cached).
+    // Same origin as the WordPress API: https://www.gadaviral.com/wp-json/gadaviral/v1
     (function () {
       try {
         var ctl = new AbortController();
         var timer = setTimeout(function () { ctl.abort(); }, 1800);
-        fetch('/api/v1/community/highlights', { signal: ctl.signal })
+        var API_BASE = window.__GADV_API_BASE__ || '/wp-json/gadaviral/v1';
+        fetch(API_BASE + '/community/highlights', { signal: ctl.signal })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (d) {
             clearTimeout(timer);

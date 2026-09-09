@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../api.js';
 
 interface Highlight {
   username: string;
@@ -18,7 +19,9 @@ export default function CommunityStrip() {
 
   useEffect(() => {
     let alive = true;
-    fetch('/api/v1/community/highlights')
+    // Public (no-auth) decorative endpoint. Route names follow the API spec —
+    // silently stays hidden while the WordPress API does not expose it yet.
+    fetch(apiUrl('community/highlights'))
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (alive && d && Array.isArray(d.items) && d.items.length) setData(d); })
       .catch(() => { /* decorative — stay hidden offline */ });
