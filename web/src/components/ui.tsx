@@ -39,7 +39,7 @@ export function GoogleButton({ label = 'Continue with Google' }: { label?: strin
           window.location.href = url;
         } catch (e: any) {
           show(e.message?.toLowerCase().includes('not configured')
-            ? 'Google sign-in is not configured on this server yet — set GOOGLE_CLIENT_ID in backend/.env (see docs/GOOGLE-AUTH-SETUP.md).'
+            ? 'Google sign-in is not configured on this server yet — WP Admin → Settings → GADAVIRAL Google Sign-in (see docs/GOOGLE-AUTH-SETUP.md).'
             : e.message);
         }
       }}

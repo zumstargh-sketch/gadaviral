@@ -633,6 +633,16 @@
       "permission_callback": null
     },
     {
+      "url": "/auth/google/callback",
+      "methods": "GET",
+      "permission_callback": null
+    },
+    {
+      "url": "/auth/google/idtoken",
+      "methods": "POST",
+      "permission_callback": null
+    },
+    {
       "url": "/auth/change-password",
       "methods": "POST",
       "permission_callback": null

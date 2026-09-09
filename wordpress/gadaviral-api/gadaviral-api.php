@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -470,11 +470,273 @@ function gadv_auth_resend_verification($request) {
 	return rest_ensure_response(['ok' => true]);
 }
 
+// ============================================================================
+// Google Sign-in (OAuth 2.0 / OpenID Connect)
+// ----------------------------------------------------------------------------
+// Web:        GET  /auth/google/url      → { url }  (Google authorization URL)
+//             GET  /auth/google/callback → exchanges the code, links or creates
+//                                          the account, then 302s to the SPA at
+//                                          /auth/google/complete?accessToken=…
+// Any client: POST /auth/google/idtoken → verifies a Google ID token (JWKS,
+//                                          RS256, iss/exp/aud) — Android/Windows.
+// Credentials live in WP options (WP Admin → Settings → GADAVIRAL Google).
+// ============================================================================
+
+function gadv_b64url_decode($s) {
+	return base64_decode(strtr($s, '-_', '+/') . str_repeat('=', (4 - strlen($s) % 4) % 4));
+}
+
+/** All registered Google audiences: web + android + desktop client IDs. */
+function gadv_google_client_ids() {
+	return array_values(array_filter([
+		get_option('gadv_google_client_id'),
+		get_option('gadv_google_android_client_id'),
+		get_option('gadv_google_desktop_client_id'),
+	]));
+}
+
+/** SPA origins allowed to receive the post-login redirect. */
+function gadv_google_spa_origins() {
+	return [
+		'www.gadaviral.com' => 'https://www.gadaviral.com',
+		'gadaviral.com' => 'https://gadaviral.com',
+		'staging.gadaviral.com' => 'https://staging.gadaviral.com',
+		'localhost:5173' => 'http://localhost:5173',
+	];
+}
+
+/** Build the Google authorization URL (auth-code flow). */
 function gadv_auth_google_url($request) {
-	// Google OAuth is not configured here. Return helpful error if not.
 	$client = get_option('gadv_google_client_id');
-	if (!$client) return new WP_Error('not_configured', 'Google sign-in not configured', ['status' => 501]);
-	return rest_ensure_response(['url' => '']);
+	if (!$client) {
+		return new WP_Error('not_configured', 'Google sign-in is not configured yet (WP Admin → Settings → GADAVIRAL Google Sign-in)', ['status' => 501]);
+	}
+	$state = bin2hex(random_bytes(16));
+	// Remember where the user came from (whitelisted) so the callback returns
+	// them to the right SPA origin (www / apex / staging / localhost dev).
+	$base = 'https://www.gadaviral.com';
+	$ref = isset($_SERVER['HTTP_REFERER']) ? (string) $_SERVER['HTTP_REFERER'] : '';
+	if ($ref) {
+		$host = parse_url($ref, PHP_URL_HOST);
+		$origins = gadv_google_spa_origins();
+		if ($host && isset($origins[$host])) $base = $origins[$host];
+	}
+	set_transient('gadv_goog_state_' . $state, $base, 10 * MINUTE_IN_SECONDS);
+	$args = [
+		'client_id' => $client,
+		'redirect_uri' => rest_url('gadaviral/v1/auth/google/callback'),
+		'response_type' => 'code',
+		'scope' => 'openid email profile',
+		'state' => $state,
+		'prompt' => 'select_account',
+	];
+	return rest_ensure_response(['url' => 'https://accounts.google.com/o/oauth2/v2/auth?' . build_query($args)]);
+}
+
+/**
+ * Find/link/create the GADAVIRAL account for a verified Google identity
+ * (spec §9 linking + §96 new-user rules: role stays subscriber, never admin).
+ */
+function gadv_google_resolve_user($sub, $email, $name, $picture) {
+	// 1. Already linked to this Google identity → same account every time.
+	$found = get_users(['meta_key' => 'gadv_google_sub', 'meta_value' => $sub, 'number' => 1, 'fields' => 'all']);
+	if (!empty($found)) return ['user' => get_userdata($found[0]->ID), 'is_new' => false];
+	// 2. Existing account with the same Google-verified email → link (one account, two sign-in methods).
+	$by_email = $email ? get_user_by('email', $email) : null;
+	if ($by_email) {
+		update_user_meta($by_email->ID, 'gadv_google_sub', $sub);
+		update_user_meta($by_email->ID, 'gadv_auth_provider', 'google');
+		return ['user' => get_userdata($by_email->ID), 'is_new' => false];
+	}
+	// 3. Brand-new account. Username suggested from the real name (nii_tetteh style).
+	$base = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', (string) $name), '_'));
+	if ($base === '' && $email) $base = trim(preg_replace('/[^a-z0-9_]+/', '_', strtolower(current(explode('@', $email)))), '_');
+	$base = substr($base !== '' ? $base : 'member', 0, 24);
+	$username = $base;
+	for ($i = 0; $i < 20 && username_exists($username); $i++) {
+		$username = $base . '_' . wp_rand(10, 99);
+	}
+	if (username_exists($username)) $username = $base . '_' . time();
+	$user_id = wp_create_user($username, wp_generate_password(24, true, true), $email);
+	if (is_wp_error($user_id)) return ['user' => null, 'is_new' => false];
+	wp_update_user(['ID' => $user_id, 'display_name' => $name !== '' ? $name : $username]);
+	// Google emails are verified — no email confirmation needed (spec §13).
+	update_user_meta($user_id, 'gadv_google_sub', $sub);
+	update_user_meta($user_id, 'gadv_auth_provider', 'google');
+	update_user_meta($user_id, 'gadv_email_verified', 1);
+	if ($picture) update_user_meta($user_id, 'gadv_avatar_url', esc_url_raw($picture));
+	return ['user' => get_userdata($user_id), 'is_new' => true];
+}
+
+/** Issue the app's access/refresh token pair for a user. */
+function gadv_google_tokens($user) {
+	$access = gadv_jwt_encode(['sub' => $user->ID, 'email' => $user->user_email], 900);
+	$rt = gadv_create_refresh_token_row($user->ID);
+	$refresh = is_array($rt) ? $rt['token'] : $rt;
+	return ['accessToken' => $access, 'refreshToken' => $refresh, 'user' => gadv_user_public($user)];
+}
+
+/** 302 the browser back to the SPA with the session in the query string. */
+function gadv_google_redirect($base, $params) {
+	wp_redirect(add_query_arg($params, $base . '/auth/google/complete'), 302);
+	exit;
+}
+
+/** Google redirects the browser here with ?code&state (auth-code flow). */
+function gadv_auth_google_callback($request) {
+	$code  = (string) $request->get_param('code');
+	$state = (string) $request->get_param('state');
+	$base = $state ? get_transient('gadv_goog_state_' . $state) : '';
+	if (!$code || !$state || !$base) gadv_google_redirect('https://www.gadaviral.com', ['google' => 'error']);
+	delete_transient('gadv_goog_state_' . $state); // state is single-use
+
+	$resp = wp_remote_post('https://oauth2.googleapis.com/token', [
+		'timeout' => 15,
+		'body' => [
+			'code' => $code,
+			'client_id' => get_option('gadv_google_client_id'),
+			'client_secret' => get_option('gadv_google_client_secret'),
+			'redirect_uri' => rest_url('gadaviral/v1/auth/google/callback'),
+			'grant_type' => 'authorization_code',
+		],
+	]);
+	if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
+		gadv_google_redirect($base, ['google' => 'error']);
+	}
+	$token = json_decode(wp_remote_retrieve_body($resp), true);
+	// The id_token arrives straight from Google's token endpoint over TLS (with
+	// our client_secret) — per OIDC §3.1.3.7 no local signature check is needed.
+	$claims = json_decode(gadv_b64url_decode(explode('.', $token['id_token'] ?? '')[1] ?? ''), true);
+	if (!$claims || empty($claims['sub'])) gadv_google_redirect($base, ['google' => 'error']);
+	if (empty($claims['email_verified'])) gadv_google_redirect($base, ['google' => 'google_email_unverified']);
+
+	$account = gadv_google_resolve_user($claims['sub'], isset($claims['email']) ? $claims['email'] : '', isset($claims['name']) ? $claims['name'] : '', isset($claims['picture']) ? $claims['picture'] : '');
+	if (!$account['user']) gadv_google_redirect($base, ['google' => 'error']);
+	$t = gadv_google_tokens($account['user']);
+	gadv_google_redirect($base, [
+		'accessToken' => $t['accessToken'],
+		'refreshToken' => $t['refreshToken'],
+		'isNew' => $account['is_new'] ? 'true' : 'false',
+		'needsProfile' => $account['is_new'] ? 'true' : 'false',
+	]);
+}
+
+/** Convert a Google JWK (RSA) to a PEM public key for openssl_verify. */
+function gadv_jwk_to_pem($jwk) {
+	$n = gadv_b64url_decode(isset($jwk['n']) ? $jwk['n'] : '');
+	$e = gadv_b64url_decode(isset($jwk['e']) ? $jwk['e'] : '');
+	if (!$n || !$e) return false;
+	$der_len = function ($len) {
+		return $len < 128 ? chr($len) : chr(0x80 | ($len >> 8)) . chr($len & 0xff);
+	};
+	$der_int = function ($bytes) use ($der_len) {
+		if (ord($bytes[0]) > 0x7f) $bytes = "\x00" . $bytes; // keep the integer positive
+		return "\x02" . $der_len(strlen($bytes)) . $bytes;
+	};
+	$rsa = $der_int($n) . $der_int($e);
+	$rsa_seq = "\x30" . $der_len(strlen($rsa)) . $rsa;
+	$bits = "\x00" . $rsa_seq; // BIT STRING payload: zero unused-bits byte
+	$bs = "\x03" . $der_len(strlen($bits)) . $bits;
+	$alg = "\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00"; // rsaEncryption, NULL
+	$spki = "\x30" . $der_len(strlen($alg) + strlen($bs)) . $alg . $bs;
+	return "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode($spki), 64, "\n") . "-----END PUBLIC KEY-----\n";
+}
+
+/**
+ * Android / Windows / any native client: POST { idToken } obtained from Google's
+ * own UI. The token is verified against Google's public JWKS: RS256 signature,
+ * expiry, issuer, audience (registered client IDs) — client-supplied profile
+ * data is never trusted directly (spec §13–16).
+ */
+function gadv_auth_google_idtoken($request) {
+	$body = json_decode($request->get_body(), true);
+	$token = isset($body['idToken']) ? $body['idToken'] : (isset($body['id_token']) ? $body['id_token'] : '');
+	if (!$token) return new WP_Error('invalid', 'Missing idToken', ['status' => 400]);
+	$parts = explode('.', $token);
+	if (count($parts) !== 3) return new WP_Error('google_token_invalid', 'Malformed token', ['status' => 401]);
+	$header = json_decode(gadv_b64url_decode($parts[0]), true);
+	$claims = json_decode(gadv_b64url_decode($parts[1]), true);
+	if (!$header || !$claims || ($header['alg'] ?? '') !== 'RS256') {
+		return new WP_Error('google_token_invalid', 'Invalid token', ['status' => 401]);
+	}
+	$jwks = get_transient('gadv_google_jwks');
+	if (!$jwks) {
+		$res = wp_remote_get('https://www.googleapis.com/oauth2/v3/certs', ['timeout' => 10]);
+		if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) {
+			return new WP_Error('google_unreachable', 'Could not load Google public keys', ['status' => 502]);
+		}
+		$jwks = wp_remote_retrieve_body($res);
+		set_transient('gadv_google_jwks', $jwks, HOUR_IN_SECONDS);
+	}
+	$jwk = null;
+	foreach ((json_decode($jwks, true)['keys'] ?? []) as $k) {
+		if (($k['kid'] ?? '') === ($header['kid'] ?? '')) { $jwk = $k; break; }
+	}
+	if (!$jwk) return new WP_Error('google_token_invalid', 'Unknown signing key', ['status' => 401]);
+	$pem = gadv_jwk_to_pem($jwk);
+	$signature = gadv_b64url_decode($parts[2]);
+	$ok = $pem && openssl_verify($parts[0] . '.' . $parts[1], $signature, $pem, OPENSSL_ALGO_SHA256) === 1;
+	if (!$ok) return new WP_Error('google_token_invalid', 'Signature verification failed', ['status' => 401]);
+	if (time() > intval($claims['exp'] ?? 0)) return new WP_Error('google_token_invalid', 'Token expired', ['status' => 401]);
+	if (!in_array($claims['iss'] ?? '', ['accounts.google.com', 'https://accounts.google.com'], true)) {
+		return new WP_Error('google_token_invalid', 'Wrong issuer', ['status' => 401]);
+	}
+	if (!in_array($claims['aud'] ?? '', gadv_google_client_ids(), true)) {
+		return new WP_Error('google_token_invalid', 'Audience not allowed', ['status' => 401]);
+	}
+	if (empty($claims['email_verified'])) return new WP_Error('google_email_unverified', 'Google email not verified', ['status' => 403]);
+
+	$account = gadv_google_resolve_user($claims['sub'], isset($claims['email']) ? $claims['email'] : '', isset($claims['name']) ? $claims['name'] : '', isset($claims['picture']) ? $claims['picture'] : '');
+	if (!$account['user']) return new WP_Error('google_failed', 'Could not resolve the account', ['status' => 500]);
+	$t = gadv_google_tokens($account['user']);
+	return rest_ensure_response(array_merge($t, ['isNew' => $account['is_new'], 'needsProfile' => $account['is_new']]));
+}
+
+// Google profile pictures: short-circuit get_avatar_url() for users that have
+// a stored photo (meta gadv_avatar_url) — covers posts, comments, messages.
+add_filter('pre_get_avatar_data', function ($args, $id_or_email) {
+	$user_id = 0;
+	if (is_numeric($id_or_email)) $user_id = intval($id_or_email);
+	elseif ($id_or_email instanceof WP_User) $user_id = intval($id_or_email->ID);
+	elseif (is_object($id_or_email) && isset($id_or_email->user_id)) $user_id = intval($id_or_email->user_id); // WP_Comment
+	elseif (is_string($id_or_email)) { $u = get_user_by('email', $id_or_email); if ($u) $user_id = $u->ID; }
+	if ($user_id) {
+		$url = get_user_meta($user_id, 'gadv_avatar_url', true);
+		if ($url) { $args['url'] = $url; return $args; }
+	}
+	return $args;
+}, 10, 2);
+
+// --- Admin settings: Google sign-in credentials ------------------------------
+add_action('admin_menu', function () {
+	add_options_page('GADAVIRAL Google Sign-in', 'GADAVIRAL Google', 'manage_options', 'gadv-google', 'gadv_google_settings_page');
+});
+add_action('admin_init', function () {
+	foreach (['gadv_google_client_id', 'gadv_google_client_secret', 'gadv_google_android_client_id', 'gadv_google_desktop_client_id'] as $opt) {
+		register_setting('gadv_google', $opt);
+	}
+});
+function gadv_google_settings_page() {
+	if (!current_user_can('manage_options')) return;
+	$redirect = rest_url('gadaviral/v1/auth/google/callback');
+	?>
+	<div class="wrap">
+		<h1>GADAVIRAL Google Sign-in</h1>
+		<p>Paste the OAuth credentials from Google Cloud Console (guide: <code>docs/GOOGLE-AUTH-SETUP.md</code>).</p>
+		<p><strong>Authorized redirect URI for the Web OAuth client:</strong><br>
+			<input class="regular-text" type="text" readonly onclick="this.select()" value="<?php echo esc_attr($redirect); ?>" /></p>
+		<form method="post" action="options.php">
+			<?php settings_fields('gadv_google'); ?>
+			<table class="form-table" role="presentation">
+				<tr><th>Web client ID</th><td><input class="regular-text" type="text" name="gadv_google_client_id" value="<?php echo esc_attr(get_option('gadv_google_client_id')); ?>" placeholder="xxxx.apps.googleusercontent.com" /></td></tr>
+				<tr><th>Web client secret</th><td><input class="regular-text" type="password" name="gadv_google_client_secret" value="<?php echo esc_attr(get_option('gadv_google_client_secret')); ?>" autocomplete="new-password" /></td></tr>
+				<tr><th>Android client ID <span class="description">(optional — for the APK later)</span></th><td><input class="regular-text" type="text" name="gadv_google_android_client_id" value="<?php echo esc_attr(get_option('gadv_google_android_client_id')); ?>" /></td></tr>
+				<tr><th>Desktop client ID <span class="description">(optional — for the Windows app later)</span></th><td><input class="regular-text" type="text" name="gadv_google_desktop_client_id" value="<?php echo esc_attr(get_option('gadv_google_desktop_client_id')); ?>" /></td></tr>
+			</table>
+			<?php submit_button(); ?>
+		</form>
+	</div>
+	<?php
 }
 
 // --- User profile update ---
@@ -1842,6 +2104,16 @@ add_action('rest_api_init', function () {
 	register_rest_route('gadaviral/v1', '/auth/google/url', [
 		'methods' => 'GET',
 		'callback' => 'gadv_auth_google_url',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route('gadaviral/v1', '/auth/google/callback', [
+		'methods' => 'GET',
+		'callback' => 'gadv_auth_google_callback',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route('gadaviral/v1', '/auth/google/idtoken', [
+		'methods' => 'POST',
+		'callback' => 'gadv_auth_google_idtoken',
 		'permission_callback' => '__return_true',
 	]);
 

@@ -2,19 +2,22 @@
 
 GADAVIRAL implements genuine **Google OAuth 2.0 / OpenID Connect**:
 
-- Web → authorization-code flow (`/api/v1/auth/google/url` → `/callback`),
-  state signed by the backend.
+- Web → authorization-code flow (`/wp-json/gadaviral/v1/auth/google/url` →
+  `/auth/google/callback`), state signed/validated server-side (single-use,
+  10-minute transient). The callback exchanges the code server-side (client
+  secret never reaches the browser) and 302s to the SPA at
+  `/auth/google/complete?accessToken=…&refreshToken=…&isNew=…&needsProfile=…`.
 - Android / Windows / any client → **ID-token flow**: the client obtains a
   Google `id_token` through Google's own UI, sends it to
-  `POST /api/v1/auth/google/idtoken`, and the backend verifies the token
-  against Google's public JWKS: signature, expiry, `iss`, `aud` (per-platform
-  client IDs) and the stable `sub`. Google profile data supplied by clients is
-  never trusted directly.
+  `POST /wp-json/gadaviral/v1/auth/google/idtoken`, and the plugin verifies the
+  token against Google's public JWKS: RS256 signature, expiry, `iss`, `aud`
+  (web + Android + desktop client IDs) and the stable `sub`. Google profile
+  data supplied by clients is never trusted directly.
 - **Account linking (§9):** an existing GADAVIRAL account whose *verified*
   email matches the Google identity is linked to it — one account, multiple
   sign-in methods. New users get a natural username suggestion (e.g.
-  `nii_tetteh`, `naa_okailey_quaye_gh`) and their Google photo is copied into
-  GADAVIRAL media storage (§12).
+  `nii_tetteh`, `naa_okailey_quaye_gh`) and their Google photo is stored and
+  served everywhere the app shows avatars.
 
 ## 1. Google Cloud project
 
@@ -27,34 +30,35 @@ GADAVIRAL implements genuine **Google OAuth 2.0 / OpenID Connect**:
 
 ## 2. OAuth credentials (per platform)
 
-**Web application** (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`)
+**Web application** (`gadv_google_client_id` / `gadv_google_client_secret`)
 - Authorized JavaScript origins:
   - `https://www.gadaviral.com`
+  - `https://gadaviral.com`
+  - `https://staging.gadaviral.com` (staging tests)
   - `http://localhost:5173` (dev website)
-- Authorized redirect URIs:
-  - `https://api.gadaviral.com/api/v1/auth/google/callback` (or your API origin)
-  - `http://localhost:4000/api/v1/auth/google/callback`
+- Authorized redirect URIs (the plugin builds its own callback URL per site):
+  - `https://www.gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
+  - `https://gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
+  - `https://staging.gadaviral.com/wp-json/gadaviral/v1/auth/google/callback`
 
-**Android** (`GOOGLE_ANDROID_CLIENT_ID`)
+**Android** (`gadv_google_android_client_id`)
 - Package name: `com.gadaviral.app`
 - Add SHA-1 (and SHA-256) of your signing key:
   `keytool -list -v -keystore your.keystore -alias youralias`
   (debug keystore: `%USERPROFILE%\.android\debug.keystore`, password `android`)
 - The Android client has **no** redirect URI (ID-token flow).
 
-**Desktop / Windows** (`GOOGLE_DESKTOP_CLIENT_ID`)
+**Desktop / Windows** (`gadv_google_desktop_client_id`)
 - Type: Desktop app. No SHA needed. Used only if you later switch the Windows
   app to a native OAuth loop; the current WebView shell uses the web flow.
 
-## 3. Backend environment
+## 3. Where the credentials go (WordPress)
 
-```env
-GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=xxxx
-GOOGLE_CALLBACK_URL=https://api.gadaviral.com/api/v1/auth/google/callback
-GOOGLE_ANDROID_CLIENT_ID=xxxx.apps.googleusercontent.com
-GOOGLE_DESKTOP_CLIENT_ID=xxxx.apps.googleusercontent.com
-```
+WP Admin → **Settings → GADAVIRAL Google Sign-in** — paste the Web client ID
+and secret (the page also shows the exact redirect URI to register in Google
+Console). Optional: Android and Desktop client IDs (audiences for the ID-token
+flow). Storing nothing keeps Google sign-in disabled and the app shows a
+helpful "not configured" message.
 
 ## 4. Android app wiring
 

@@ -14,7 +14,7 @@ export default function GoogleComplete() {
     const isNew = params.get('isNew') === 'true';
     const needsProfile = params.get('needsProfile') === 'true';
     if (!accessToken) { nav('/login?google=error'); return; }
-    api.setTokens(accessToken);
+    api.setTokens(accessToken, params.get('refreshToken'));
     refresh().then(() => {
       nav(needsProfile ? '/settings?welcome=1' : '/feed');
     });
