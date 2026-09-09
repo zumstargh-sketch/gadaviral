@@ -1,0 +1,39 @@
+<?php
+/**
+ * WORDPRESS EMERGENCY ADMIN PASSWORD RESET — GADAVIRAL
+ * =====================================================
+ * Standard WordPress recovery tool for the SITE OWNER who is locked out
+ * (e.g. the password-reset email never arrives on a fresh install).
+ *
+ * HOW TO USE (cPanel → File Manager):
+ *   1. Upload this file into /public_html/  (NEXT TO wp-blog-header.php)
+ *      and rename it to:  emergency.php
+ *   2. Before uploading, edit the $USER and $NEWPASS lines below to the
+ *      values you want.
+ *   3. Visit https://www.gadaviral.com/emergency.php once.
+ *   4. The password is changed AND THE FILE DELETES ITSELF. Verify it is
+ *      gone from File Manager.
+ *
+ * SECURITY: while this file exists, ANYONE who guesses the URL can reset
+ * the password — never leave it on the server, and never commit a version
+ * containing a real password anywhere.
+ */
+
+// ── EDIT THESE TWO LINES BEFORE UPLOADING ─────────────────────────────
+$USER    = 'gadaviral';            // WordPress username (user ID 1)
+$NEWPASS = 'CHANGE-THIS-PASSWORD'; // new strong password
+// ──────────────────────────────────────────────────────────────────────
+
+require './wp-blog-header.php';
+
+if ( isset( $_GET['run'] ) ) {
+	$user = get_user_by( 'login', $USER );
+	if ( ! $user ) {
+		wp_die( 'User not found.' );
+	}
+	wp_set_password( $NEWPASS, $user->ID );
+	unlink( __FILE__ ); // self-delete
+	wp_die( 'Password changed for ' . esc_html( $USER ) . '. This file has deleted itself. Log in at /wp-login.php or /login now.' );
+}
+
+echo 'Add ?run to the URL to execute the reset.';
