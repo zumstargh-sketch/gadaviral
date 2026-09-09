@@ -753,6 +753,11 @@ add_action('phpmailer_init', function ($phpmailer) {
 	$from = get_option('gadv_smtp_username') ?: 'admin@gadaviral.com';
 	$phpmailer->setFrom($from, 'GADAVIRAL');
 });
+
+// Capture the last mail failure (surfaced by the test-email button).
+add_action('wp_mail_failed', function ($wp_error) {
+	$GLOBALS['gadv_last_mail_error'] = is_wp_error($wp_error) ? $wp_error->get_error_message() : (string) $wp_error;
+});
 function gadv_google_settings_page() {
 	if (!current_user_can('manage_options')) return;
 	$redirect = rest_url('gadaviral/v1/auth/google/callback');
@@ -784,7 +789,14 @@ function gadv_google_settings_page() {
 			Leave the host empty to fall back to PHP mail().</p>
 		<?php if ($test_done): ?>
 			<div class="notice <?php echo $test_ok ? 'notice-success' : 'notice-error'; ?> is-dismissible">
-				<p><?php echo $test_ok ? '✅ Test email sent — check the inbox (and spam folder).' : '❌ Test email FAILED — check host/port/encryption/credentials.'; ?></p>
+				<p><?php
+					if ($test_ok) {
+						echo '✅ Test email sent — check the inbox (and spam folder).';
+					} else {
+						$test_err = isset($_GET['err']) ? rawurldecode($_GET['err']) : '';
+						echo '❌ Test email FAILED' . ($test_err ? ' — <code>' . esc_html($test_err) . '</code>' : ' — check host/port/encryption/credentials.');
+					}
+				?></p>
 			</div>
 		<?php endif; ?>
 		<form method="post" action="options.php">
@@ -814,9 +826,11 @@ function gadv_google_settings_page() {
 add_action('admin_post_gadv_smtp_test', function () {
 	if (!current_user_can('manage_options')) wp_die('Forbidden');
 	check_admin_referer('gadv_smtp_test');
+	$GLOBALS['gadv_last_mail_error'] = '';
 	$to = get_option('admin_email');
 	$sent = wp_mail($to, 'GADAVIRAL SMTP test', 'If you can read this, outgoing email works. ✅');
-	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0], admin_url('options-general.php')));
+	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err)], admin_url('options-general.php')));
 	exit;
 });
 
