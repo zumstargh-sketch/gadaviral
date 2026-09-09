@@ -2312,8 +2312,18 @@ add_action('rest_api_init', function () {
 	]);
 });
 
+/** Plugin version from the file header (surfaced via /health for diagnostics). */
+function gadv_plugin_version() {
+	static $v = null;
+	if ($v === null) {
+		$data = get_file_data(__FILE__, ['Version' => 'Version'], 'plugin');
+		$v = !empty($data['Version']) ? $data['Version'] : '0';
+	}
+	return $v;
+}
+
 function gadv_health($request) {
-	return rest_ensure_response(['ok' => true, 'source' => 'wordpress-gadaviral-api']);
+	return rest_ensure_response(['ok' => true, 'source' => 'wordpress-gadaviral-api', 'version' => gadv_plugin_version()]);
 }
 
 function gadv_auth_login($request) {
