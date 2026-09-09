@@ -758,6 +758,20 @@ add_action('phpmailer_init', function ($phpmailer) {
 add_action('wp_mail_failed', function ($wp_error) {
 	$GLOBALS['gadv_last_mail_error'] = is_wp_error($wp_error) ? $wp_error->get_error_message() : (string) $wp_error;
 });
+
+/** Append a line to the mail log (wp-content/uploads/gadv-mail-log.txt). */
+function gadv_mail_log($entry) {
+	$upload = wp_upload_dir();
+	@file_put_contents(trailingslashit($upload['basedir']) . 'gadv-mail-log.txt', '[' . current_time('mysql') . '] ' . $entry . "\n", FILE_APPEND);
+}
+
+/** One-line description of the active mail transport. */
+function gadv_mail_transport() {
+	$host = get_option('gadv_smtp_host');
+	return $host
+		? 'SMTP → ' . $host . ':' . intval(get_option('gadv_smtp_port') ?: 465) . ' (' . (get_option('gadv_smtp_secure') ?: 'ssl') . ') as ' . (get_option('gadv_smtp_username') ?: 'admin@gadaviral.com')
+		: 'PHP mail() — ⚠️ no SMTP host configured, delivery is unreliable';
+}
 function gadv_google_settings_page() {
 	if (!current_user_can('manage_options')) return;
 	$redirect = rest_url('gadaviral/v1/auth/google/callback');
@@ -784,6 +798,7 @@ function gadv_google_settings_page() {
 
 		<hr />
 		<h2>Email (SMTP) — verification codes &amp; password resets</h2>
+		<p><strong>Active transport:</strong> <code><?php echo esc_html(gadv_mail_transport()); ?></code></p>
 		<p>Create the mailbox first (cPanel → Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
 			Namecheap: host <code>mail.gadaviral.com</code>, port <code>465</code>, encryption <code>ssl</code>.
 			Leave the host empty to fall back to PHP mail().</p>
@@ -817,8 +832,22 @@ function gadv_google_settings_page() {
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_smtp_test" />
 			<?php wp_nonce_field('gadv_smtp_test'); ?>
-			<?php submit_button('Send test email to my own address', 'secondary', 'submit', false); ?>
+			<table class="form-table" role="presentation">
+				<tr><th>Send test to</th><td><input class="regular-text" type="email" name="gadv_test_to" value="<?php echo esc_attr(get_option('admin_email')); ?>" /><p class="description">Use YOUR personal inbox (e.g. your Gmail) — not the site mailbox.</p></td></tr>
+			</table>
+			<?php submit_button('Send test email', 'secondary', 'submit', false); ?>
 		</form>
+		<?php
+		$upload = wp_upload_dir();
+		$log_file = trailingslashit($upload['basedir']) . 'gadv-mail-log.txt';
+		if (file_exists($log_file)) {
+			$lines = @file($log_file, FILE_IGNORE_NEW_LINES);
+			$recent = array_slice(array_reverse($lines ?: []), 0, 8);
+			echo '<h2>Recent mail log</h2><pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-width:900px;overflow:auto">';
+			foreach ($recent as $line) echo esc_html($line) . "\n";
+			echo '</pre>';
+		}
+	?>
 	</div>
 	<?php
 }
@@ -827,9 +856,12 @@ add_action('admin_post_gadv_smtp_test', function () {
 	if (!current_user_can('manage_options')) wp_die('Forbidden');
 	check_admin_referer('gadv_smtp_test');
 	$GLOBALS['gadv_last_mail_error'] = '';
-	$to = get_option('admin_email');
-	$sent = wp_mail($to, 'GADAVIRAL SMTP test', 'If you can read this, outgoing email works. ✅');
+	$to = isset($_POST['gadv_test_to']) ? sanitize_email($_POST['gadv_test_to']) : '';
+	if (!$to) $to = get_option('admin_email');
+	$transport = gadv_mail_transport();
+	$sent = wp_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. ✅\n\nTransport: " . $transport);
 	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+	gadv_mail_log("TEST to=$to result=" . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . " transport=$transport");
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err)], admin_url('options-general.php')));
 	exit;
 });
