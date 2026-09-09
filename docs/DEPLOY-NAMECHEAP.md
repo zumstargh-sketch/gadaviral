@@ -49,8 +49,13 @@ Apply these three steps in order:
      `.htaccess` so the HTML file is picked before WordPress's `index.php`:
      `DirectoryIndex index.html index.php`
 
-   After editing, flush caches: cPanel → **LiteSpeed Web Cache Manager →
-   Flush All** (a stale empty cached response can otherwise keep showing).
+   After editing, flush caches — the LiteSpeed manager location varies by
+   setup: **WP Admin → LiteSpeed Cache → Toolbox → Flush All** (or the
+   LiteSpeed icon in the top admin bar → *Purge All*), or in cPanel →
+   **LiteSpeed Web Cache Manager → Flush All** when that icon exists. A stale
+   empty cached response can otherwise keep showing at `/`. No LiteSpeed menu
+   at all? Then nothing is page-cached — just test in a private/incognito
+   window. While there, also add the API cache exclusion (see §3, step 5).
 
 3. **Verify** from any machine:
 
