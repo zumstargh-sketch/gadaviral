@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -825,6 +825,10 @@ function gadv_google_settings_page() {
 			</table>
 			<?php submit_button('Save settings (Google + Email)'); ?>
 		</form>
+		<?php if (isset($_GET['verified'])): ?>
+			<div class="notice notice-success is-dismissible"><p>✅ Account <strong><?php echo esc_html(rawurldecode($_GET['verified'])); ?></strong> verified — they can log in now.</p></div>
+		<?php endif; ?>
+		<?php gadv_unverified_accounts_section(); ?>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_smtp_test" />
 			<?php wp_nonce_field('gadv_smtp_test'); ?>
@@ -862,7 +866,42 @@ add_action('admin_post_gadv_smtp_test', function () {
 	exit;
 });
 
-// --- User profile update ---
+// Unlock tool: list unverified accounts + one-click verify (admin only).
+add_action('admin_post_gadv_verify_user', function () {
+	if (!current_user_can('manage_options')) wp_die('Forbidden');
+	check_admin_referer('gadv_verify_user');
+	$uid = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+	$user = $uid ? get_userdata($uid) : null;
+	if ($user) {
+		update_user_meta($user->ID, 'gadv_email_verified', 1);
+		gadv_mail_log("ADMIN-VERIFY user={$user->user_login} ({$user->user_email}) verified manually");
+	}
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'verified' => $user ? rawurlencode($user->user_login) : ''], admin_url('options-general.php')));
+	exit;
+});
+
+// Section rendered inside the GADAVIRAL settings page: unverified accounts.
+function gadv_unverified_accounts_section() {
+	$users = get_users(['meta_key' => 'gadv_email_verified', 'meta_compare' => 'NOT EXISTS', 'number' => 50, 'orderby' => 'registered', 'order' => 'DESC']);
+	// Some accounts carry the meta with value 0 instead of missing it.
+	$also = get_users(['meta_key' => 'gadv_email_verified', 'meta_value' => '0', 'number' => 50, 'orderby' => 'registered', 'order' => 'DESC']);
+	$all = [];
+	foreach (array_merge($users, $also) as $u) { $all[$u->ID] = $u; }
+	if (empty($all)) {
+		echo '<p style="color:#00a32a">✅ No unverified accounts — everyone can log in.</p>';
+		return;
+	}
+	echo '<p>' . count($all) . ' account(s) waiting for email verification. ' .
+		'<strong>Verify now</strong> unlocks them immediately (use when the confirmation email never arrived):</p>';
+	echo '<table class="widefat striped" style="max-width:900px"><thead><tr>' .
+		'<th>User</th><th>Email</th><th>Registered</th><th>Action</th></tr></thead><tbody>';
+	foreach ($all as $u) {
+		$url = wp_nonce_url(admin_url('admin-post.php?action=gadv_verify_user&user_id=' . intval($u->ID)), 'gadv_verify_user');
+		echo '<tr><td><strong>' . esc_html($u->user_login) . '</strong></td><td>' . esc_html($u->user_email) . '</td><td>' . esc_html($u->user_registered) . '</td>' .
+			'<td><a class="button button-primary" href="' . esc_url($url) . '" onclick="return confirm(\'Verify ' . esc_js($u->user_login) . ' now?\')">Verify now</a></td></tr>';
+	}
+	echo '</tbody></table>';
+}
 function gadv_user_update_me($request) {
 	$user = gadv_get_request_user($request);
 	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
