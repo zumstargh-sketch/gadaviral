@@ -27,7 +27,7 @@ export default function Layout() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <Link to="/feed" className="brand"><img className="brand-mark" src="/icons/icon-192.png" alt="" />GADA<span>VIRAL</span></Link>
+        <Link to="/feed" className="brand"><img className="brand-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />GADA<span>VIRAL</span></Link>
         {[...navItems,
           { to: '/groups', label: 'Groups', icon: '👥' },
           { to: '/events', label: 'Events', icon: '📅' },

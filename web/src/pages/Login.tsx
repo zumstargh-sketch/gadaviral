@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="auth-wrap">
       <div className="card">
-        <img className="auth-logo" src="/icons/logo-512.png" alt="GADAVIRAL logo" />
+        <img className="auth-logo" src={`${import.meta.env.BASE_URL}icons/logo-512.png`} alt="GADAVIRAL logo" />
         <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 18 }}>
           GADA<span style={{ color: '#fff' }}>VIRAL</span>
         </div>

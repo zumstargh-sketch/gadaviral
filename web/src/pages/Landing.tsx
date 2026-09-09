@@ -4,7 +4,7 @@ import CommunityStrip from '../components/CommunityStrip.js';
 export default function Landing() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 24, textAlign: 'center' }}>
-      <img className="landing-logo" src="/icons/logo-512.png" alt="GADAVIRAL logo" />
+      <img className="landing-logo" src={`${import.meta.env.BASE_URL}icons/logo-512.png`} alt="GADAVIRAL logo" />
       <div style={{ fontSize: 64, fontWeight: 900, color: 'var(--gold)', letterSpacing: 2, marginTop: 8 }}>
         GADA<span style={{ color: '#fff' }}>VIRAL</span>
       </div>
