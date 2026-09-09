@@ -9,12 +9,15 @@
   <link rel="canonical" href="https://www.gadaviral.com/app/" />
   <link rel="icon" href="/app/icons/favicon-32.png" />
   <!--
-    GADAVIRAL homepage redirect.
-    Upload this file as:  /public_html/index.html
-    (replaces the empty file that made the homepage appear blank/white).
-    It instantly sends visitors to the app at /app/. Alternative: the
-    .htaccess block in deploy/root-htaccess-addition.txt keeps the app on
-    the clean root URL instead of redirecting.
+    GADAVIRAL homepage redirect (FALLBACK method — only if .htaccess cannot
+    be edited; see deploy/root-htaccess-addition.txt for the recommended way).
+
+    Upload this file as:  /public_html/index.html  (create it — the root has
+    WordPress's index.php, which renders the blank page). ALSO add this one
+    line at the TOP of /public_html/.htaccess so this file is served instead
+    of index.php:
+        DirectoryIndex index.html index.php
+    It instantly sends visitors to the app at /app/.
   -->
   <script>try { location.replace('/app/'); } catch (e) { location.href = '/app/'; }</script>
   <meta http-equiv="refresh" content="0; url=/app/" />

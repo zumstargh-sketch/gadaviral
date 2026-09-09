@@ -1,8 +1,20 @@
 # ============================================================================
 # GADAVIRAL app at the site root  (add to /public_html/.htaccess)
 # ============================================================================
-# Paste this block ABOVE the "# BEGIN WordPress" line in the existing
-# /public_html/.htaccess (cPanel → File Manager → Settings → Show hidden files).
+# The site root is WordPress (index.php) whose front page renders empty —
+# that is the white page. This block intercepts requests BEFORE index.php
+# runs, so no WordPress file needs to change.
+#
+# HOW TO APPLY (cPanel → File Manager):
+#   1. Settings (top-right) → tick "Show Hidden Files (dotfiles)" → Save.
+#   2. In /public_html/ find .htaccess. If you don't see it, it is hidden —
+#      do NOT skip this step. Download a backup copy first.
+#   3. If .htaccess exists (it normally does — WordPress rewrites live there):
+#      Edit it and paste EVERYTHING between the dashed lines below at the VERY
+#      TOP, above the "# BEGIN WordPress" line. Save.
+#      If .htaccess does NOT exist: create it with exactly the block below
+#      (WordPress will append its own # BEGIN WordPress section on the next
+#      permalink save — no conflict).
 #
 # Effect: the React app serves directly on https://www.gadaviral.com/ (no URL
 # redirect) and on every SPA route below, while ALL WordPress paths

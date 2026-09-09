@@ -30,14 +30,27 @@ Apply these three steps in order:
    Verify: `curl https://www.gadaviral.com/wp-json/gadaviral/v1/health`
    → `{"ok":true,"source":"wordpress-gadaviral-api"}`
 
-2. **Make the homepage show the app** — pick ONE of:
-   - **Redirect (1 file, simplest):** in cPanel File Manager replace
-     `/public_html/index.html` (the empty file causing the white page) with
-     `deploy/root-index.html` — visitors land on the app at `/app/`.
-   - **Clean URL (`.htaccess`):** paste the block from
-     `deploy/root-htaccess-addition.txt` **above** the `# BEGIN WordPress` line
-     in `/public_html/.htaccess` — the app serves directly on the root URL and
-     all WordPress paths keep working.
+2. **Make the homepage show the app** — the root contains WordPress's
+   `index.php` (its front page renders empty — that IS the white page). Do NOT
+   delete or rename `index.php`, and the SPA's `app/index.html` stays where it
+   is. Recommended:
+
+   - **`.htaccess` block (recommended):** in cPanel File Manager enable
+     *Settings → Show Hidden Files (dotfiles)*, download a backup copy of
+     `/public_html/.htaccess`, then paste the block from
+     `deploy/root-htaccess-addition.txt` at the **very top** of the file
+     (above the `# BEGIN WordPress` line). The app then serves directly on the
+     clean root URL; every WordPress path keeps working. This intercepts the
+     request before `index.php` runs, so the blank WordPress front page is
+     bypassed.
+   - **Fallback (only if .htaccess cannot be edited):** create a new file
+     `/public_html/index.html` with the contents of `deploy/root-index.html`
+     (it redirects visitors to `/app/`) AND add this single line at the top of
+     `.htaccess` so the HTML file is picked before WordPress's `index.php`:
+     `DirectoryIndex index.html index.php`
+
+   After editing, flush caches: cPanel → **LiteSpeed Web Cache Manager →
+   Flush All** (a stale empty cached response can otherwise keep showing).
 
 3. **Verify** from any machine:
 
