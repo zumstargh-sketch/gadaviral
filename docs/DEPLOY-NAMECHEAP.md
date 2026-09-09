@@ -38,11 +38,17 @@ Apply these three steps in order:
    - **`.htaccess` block (recommended):** in cPanel File Manager enable
      *Settings → Show Hidden Files (dotfiles)*, download a backup copy of
      `/public_html/.htaccess`, then paste the block from
-     `deploy/root-htaccess-addition.txt` at the **very top** of the file
-     (above the `# BEGIN WordPress` line). The app then serves directly on the
-     clean root URL; every WordPress path keeps working. This intercepts the
-     request before `index.php` runs, so the blank WordPress front page is
-     bypassed.
+     `deploy/root-htaccess-addition.txt` **anywhere ABOVE the
+     `# BEGIN WordPress` line** (if a `# BEGIN LSCACHE` block exists, leave it
+     where it is — rule order relative to LiteSpeed's markers does not matter;
+     what matters is that the GADAVIRAL block comes BEFORE WordPress's
+     catch-all, whose `[L]` flag would otherwise swallow every request and
+     keep serving the blank front page). A typical correct order is:
+     `# BEGIN LSCACHE … # END LSCACHE → # BEGIN NON_LSCACHE … # END
+     NON_LSCACHE → GADAVIRAL block → # BEGIN WordPress … # END WordPress`.
+     The app then serves directly on the clean root URL; every WordPress path
+     keeps working. This intercepts the request before `index.php` runs, so
+     the blank WordPress front page is bypassed.
    - **Fallback (only if .htaccess cannot be edited):** create a new file
      `/public_html/index.html` with the contents of `deploy/root-index.html`
      (it redirects visitors to `/app/`) AND add this single line at the top of
