@@ -2258,6 +2258,11 @@ function gadv_auth_login($request) {
 	if (empty($username) || empty($password)) {
 		return new WP_Error('invalid', 'Missing credentials', ['status' => 400]);
 	}
+	// The app form asks for the EMAIL. WordPress accounts are keyed by
+	// user_login (which may differ from the email — e.g. 'nii_tetteh'), so
+	// resolve the email to the actual login name before signing on.
+	$by_email = get_user_by('email', $username);
+	if ($by_email) $username = $by_email->user_login;
 	$creds = ['user_login' => $username, 'user_password' => $password, 'remember' => true];
 	$user = wp_signon($creds, false);
 	if (is_wp_error($user)) {
