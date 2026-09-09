@@ -28,15 +28,18 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # 1. Homepage → the app (internal rewrite; the URL stays the clean root)
+  # 1. Everything under /app/ is handled by the app's own /app/.htaccess
+  #    (which has proper "real file passes through" conditions). Stop here so
+  #    the app's JS, CSS and icons can never be hijacked by any rule below.
+  RewriteRule ^app(/|$) - [L]
+
+  # 2. Homepage → the app (internal rewrite; the URL stays the clean root)
   RewriteRule ^/?$ /app/index.html [L]
 
-  # 2. App paths + SPA deep links → the app. The conditions let real files
-  #    (the app's own /app/assets/*.js, CSS, icons, ...) pass through
-  #    untouched; every wp-* path and anything unknown falls through to
-  #    WordPress. The app/? alternative also makes /app/... deep links and
-  #    refreshes work without relying on the /app/.htaccess fallback.
+  # 3. SPA deep links → the app. Existing files pass through thanks to the
+  #    conditions; every wp-* path and anything unknown falls through to
+  #    WordPress.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(app/?|login|register|verify|verified|reset-password|auth/google/complete|feed|explore|post(/.*)?|u(/.*)?|notifications|messages|groups(/.*)?|events|businesses|settings|admin)(/.*)?$ /app/index.html [L]
+  RewriteRule ^(login|register|verify|verified|reset-password|auth/google/complete|feed|explore|post(/.*)?|u(/.*)?|notifications|messages|groups(/.*)?|events|businesses|settings|admin)(/.*)?$ /app/index.html [L]
 </IfModule>
