@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.4
+ * Version: 0.2.5
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -1192,7 +1192,7 @@ function gadv_moderation_queue($request) {
 		$author = get_userdata(intval($p->post_author));
 		$flagged[] = [
 			'id' => intval($p->ID),
-			'content' => $p->post_content,
+			'content' => gadv_clean_content($p->post_content),
 			'type' => get_post_meta($p->ID, 'gadv_type', true) ?: 'TEXT',
 			'status' => 'PENDING_REVIEW',
 			'created_at' => $p->post_date_gmt ?: $p->post_date,
@@ -2034,7 +2034,7 @@ function gadv_search($request) {
 		$author = get_userdata(intval($p->post_author));
 		$posts[] = [
 			'id' => intval($p->ID),
-			'content' => $p->post_content,
+			'content' => gadv_clean_content($p->post_content),
 			'type' => get_post_meta($p->ID, 'gadv_type', true) ?: 'TEXT',
 			'created_at' => $p->post_date_gmt ?: $p->post_date,
 			'author_username' => $author ? $author->user_login : null,
@@ -2569,6 +2569,11 @@ function gadv_user_by_username($request) {
  * Hydrate one WP post into the shape the SPA expects (author fields, counts,
  * media, poll, viewer reaction). Mirrors the previous backend's hydratePosts().
  */
+/** Strip Gutenberg block-comment markers (<!-- wp:... -->) from post content for API output. */
+function gadv_clean_content($text) {
+	return trim(preg_replace('/<!--.*?-->/s', '', (string) $text));
+}
+
 function gadv_hydrate_post($p, $viewer_id = null) {
 	global $wpdb;
 	$pid = intval($p->ID);
@@ -2615,7 +2620,7 @@ function gadv_hydrate_post($p, $viewer_id = null) {
 		'id' => $pid,
 		'author_id' => (string) $p->post_author,
 		'type' => $type,
-		'content' => $p->post_content,
+		'content' => gadv_clean_content($p->post_content),
 		'title' => $p->post_title,
 		'visibility' => 'PUBLIC',
 		'status' => $p->post_status === 'publish' ? 'ACTIVE' : strtoupper($p->post_status),
