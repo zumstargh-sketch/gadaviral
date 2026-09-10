@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -395,7 +395,10 @@ function gadv_auth_change_email($request) {
 		'created_at' => current_time('mysql', 1),
 	]);
 	$link = home_url('/app/settings?confirmEmail=' . $token);
-	wp_mail($newEmail, 'GADAVIRAL email change confirmation', "Confirm your new email address: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	$GLOBALS['gadv_last_mail_error'] = '';
+	$sent = wp_mail($newEmail, 'GADAVIRAL email change confirmation', "Confirm your new email address: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+	gadv_mail_log('CHANGE-EMAIL to=' . $newEmail . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : ''));
 	return rest_ensure_response(['ok' => true, 'message' => 'Confirmation email sent to ' . $newEmail . '. Your email updates after you confirm.']);
 }
 
@@ -411,7 +414,10 @@ function gadv_auth_forgot_password($request) {
 		$expires = date('Y-m-d H:i:s', time() + 3600);
 		$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user->ID, 'purpose' => 'RESET_PASSWORD', 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
 		$link = home_url('/app/reset?token=' . $token);
-		wp_mail($email, 'GADAVIRAL password reset', "Reset your password: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+		$GLOBALS['gadv_last_mail_error'] = '';
+		$sent = wp_mail($email, 'GADAVIRAL password reset', "Reset your password: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+		$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+		gadv_mail_log('RESET to=' . $email . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : ''));
 	}
 	// Always return success to avoid email enumeration
 	return rest_ensure_response(['ok' => true]);
@@ -462,7 +468,12 @@ function gadv_send_verification_otp($user_id, $email) {
 	$hash = wp_hash_password((string) $otp);
 	$expires = date('Y-m-d H:i:s', time() + 600);
 	$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user_id, 'purpose' => 'OTP_VERIFY', 'otp' => $otp, 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
-	wp_mail($email, 'GADAVIRAL verification code', "Welcome to GADAVIRAL!\n\nYour verification code is: $otp\n\nEnter it in the app to activate your account. This code expires in 10 minutes.\n\nIf you did not create an account, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	$GLOBALS['gadv_last_mail_error'] = '';
+	$sent = wp_mail($email, 'GADAVIRAL verification code', "Welcome to GADAVIRAL!\n\nYour verification code is: $otp\n\nEnter it in the app to activate your account. This code expires in 10 minutes.\n\nIf you did not create an account, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+	// Every OTP send is logged (WP Admin → Settings → GADAVIRAL Google →
+	// Recent mail log) so "the code never arrived" is diagnosable remotely.
+	gadv_mail_log('OTP to=' . $email . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . ' transport=' . gadv_mail_transport());
 }
 
 function gadv_auth_resend_verification($request) {
@@ -556,12 +567,21 @@ function gadv_auth_google_url($request) {
 function gadv_google_resolve_user($sub, $email, $name, $picture) {
 	// 1. Already linked to this Google identity → same account every time.
 	$found = get_users(['meta_key' => 'gadv_google_sub', 'meta_value' => $sub, 'number' => 1, 'fields' => 'all']);
-	if (!empty($found)) return ['user' => get_userdata($found[0]->ID), 'is_new' => false];
+	if (!empty($found)) {
+		// Google just re-proved this mailbox is theirs (the ID token's
+		// email_verified claim was enforced before we got here) — keep the
+		// verified flag set (update_user_meta is a no-op when unchanged).
+		update_user_meta($found[0]->ID, 'gadv_email_verified', 1);
+		return ['user' => get_userdata($found[0]->ID), 'is_new' => false];
+	}
 	// 2. Existing account with the same Google-verified email → link (one account, two sign-in methods).
 	$by_email = $email ? get_user_by('email', $email) : null;
 	if ($by_email) {
 		update_user_meta($by_email->ID, 'gadv_google_sub', $sub);
 		update_user_meta($by_email->ID, 'gadv_auth_provider', 'google');
+		// The linked account is email-verified from now on: Google verified
+		// the mailbox, so no OTP confirmation is needed (unblocks posting).
+		update_user_meta($by_email->ID, 'gadv_email_verified', 1);
 		return ['user' => get_userdata($by_email->ID), 'is_new' => false];
 	}
 	// 3. Brand-new account. Username suggested from the real name (nii_tetteh style).
