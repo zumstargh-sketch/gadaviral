@@ -35,6 +35,7 @@ export default function PostCard({ post, onChange }: { post: any; onChange?: () 
           <Link to={`/u/${post.author_username}`} style={{ color: 'var(--text)', fontWeight: 700 }}>{post.author_name}</Link>
           {post.author_is_demo && <> <span className="badge demo">DEMO</span></>}
           {post.type === 'ANNOUNCEMENT' && <> <span className="badge gold">ANNOUNCEMENT</span></>}
+          {post.type === 'LIVE' && <> <span className="badge live">● LIVE</span></>}
           <div className="muted">@{post.author_username} · {timeAgo(post.created_at)}{post.is_demo ? ' · demo' : ''}</div>
         </div>
       </div>
@@ -43,6 +44,13 @@ export default function PostCard({ post, onChange }: { post: any; onChange?: () 
         <div className="card" style={{ margin: '8px 0', padding: 10 }}>
           <div className="muted">@{post.sharedPost.author_username} wrote:</div>
           <div>{post.sharedPost.content?.slice(0, 200)}</div>
+        </div>
+      )}
+      {post.stream?.url && (
+        <div style={{ position: 'relative', marginTop: 8 }}>
+          <iframe src={post.stream.url} title="Livestream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 10, background: '#000' }} />
+          <span className="badge live" style={{ position: 'absolute', top: 10, left: 10 }}>● LIVE</span>
         </div>
       )}
       {post.poll && (

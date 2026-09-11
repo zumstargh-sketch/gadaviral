@@ -13,6 +13,7 @@ export default function Composer({ onPosted }: { onPosted: () => void }) {
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [question, setQuestion] = useState('');
   const [files, setFiles] = useState<FileList | null>(null);
+  const [streamUrl, setStreamUrl] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -23,6 +24,11 @@ export default function Composer({ onPosted }: { onPosted: () => void }) {
           type: 'POLL', content: content || question, visibility,
           poll: { question: question || content, options: pollOptions.filter(Boolean) },
         });
+      } else if (type === 'LIVE') {
+        await api.post('/posts', {
+          type: 'LIVE', content: content || '🔴 We are LIVE now!', visibility,
+          streamUrl,
+        });
       } else if (files && files.length > 0) {
         const fd = new FormData();
         fd.append('content', content);
@@ -32,7 +38,7 @@ export default function Composer({ onPosted }: { onPosted: () => void }) {
       } else {
         await api.post('/posts', { type, content, visibility });
       }
-      setContent(''); setFiles(null); setQuestion('');
+      setContent(''); setFiles(null); setQuestion(''); setStreamUrl('');
       show('Posted ✔');
       onPosted();
     } catch (e: any) { show(e.message); } finally { setBusy(false); }
@@ -55,8 +61,8 @@ export default function Composer({ onPosted }: { onPosted: () => void }) {
           onChange={(e) => setContent(e.target.value)} />
       </div>
       <div className="tabs" style={{ marginTop: 10 }}>
-        {['TEXT', 'PHOTO', 'POLL', 'ANNOUNCEMENT'].map((t) => (
-          <button key={t} className={type === t ? 'on' : ''} onClick={() => setType(t)}>{t}</button>
+        {['TEXT', 'PHOTO', 'POLL', 'ANNOUNCEMENT', 'LIVE'].map((t) => (
+          <button key={t} className={type === t ? 'on' : ''} onClick={() => setType(t)}>{t === 'LIVE' ? '🔴 LIVE' : t}</button>
         ))}
         <select style={{ width: 150 }} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
           <option value="PUBLIC">🌍 Public</option>
@@ -65,8 +71,29 @@ export default function Composer({ onPosted }: { onPosted: () => void }) {
         </select>
       </div>
       {type === 'PHOTO' && (
-        <input type="file" accept="image/*,video/mp4,video/webm" multiple
-          onChange={(e) => setFiles(e.target.files)} style={{ marginBottom: 10 }} />
+        <div className="row" style={{ gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+          <label className="small ghost" style={{ cursor: 'pointer', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 6 }}>
+            🖼️ Gallery
+            <input type="file" accept="image/*,video/mp4,video/webm" multiple style={{ display: 'none' }}
+              onChange={(e) => setFiles(e.target.files)} />
+          </label>
+          <label className="small ghost" style={{ cursor: 'pointer', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 6 }}>
+            📷 Camera
+            <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files?.length) { const dt = new DataTransfer(); dt.items.add(e.target.files[0]); setFiles(dt.files); } }} />
+          </label>
+          {files && <span className="muted">{files.length} file(s) selected</span>}
+        </div>
+      )}
+      {type === 'LIVE' && (
+        <div style={{ marginBottom: 10 }}>
+          <input placeholder="Paste your livestream link (YouTube / Facebook / Twitch)" value={streamUrl}
+            onChange={(e) => setStreamUrl(e.target.value)} style={{ marginBottom: 6 }} />
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            Go live with your phone's camera app (YouTube Live, Facebook Live or Twitch),
+            then paste the link here — the community watches it right inside this post.
+          </p>
+        </div>
       )}
       {type === 'POLL' && (
         <div style={{ marginBottom: 10 }}>

@@ -29,6 +29,73 @@ function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
   );
 }
 
+/** Short notification ding (phone-style) via Web Audio — instant, no files. */
+function playDing() {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    g.gain.setValueAtTime(0.22, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+    o.start();
+    o.stop(ctx.currentTime + 0.6);
+    setTimeout(() => { try { ctx.close(); } catch { /* ignore */ } }, 900);
+  } catch { /* audio blocked — silent */ }
+}
+
+/** Instant notification poller: browser notification (with the device's
+ *  default notification sound) + in-app toast + unread badge in the title. */
+function useInstantNotifications(user: any, setToast: (s: string) => void) {
+  const lastSeen = { current: null as string | null };
+  useEffect(() => {
+    if (!user) return;
+    const askPermission = () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => { /* ignore */ });
+      }
+    };
+    document.addEventListener('click', askPermission, { once: true });
+
+    const poll = async () => {
+      try {
+        const d = await api.get('/notifications');
+        const items: any[] = d.items ?? [];
+        const newest = items[0];
+        if (newest) {
+          const isNew = !lastSeen.current || newest.created_at > lastSeen.current;
+          if (isNew && lastSeen.current) {
+            playDing();
+            const text = newest.body || 'You have a new notification';
+            setToast('🔔 ' + text);
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                const n = new Notification('GADAVIRAL', {
+                  body: text,
+                  icon: `${import.meta.env.BASE_URL}icons/icon-192.png`,
+                  tag: 'gadv-' + newest.id,
+                });
+                setTimeout(() => { try { n.close(); } catch { /* ignore */ } }, 8000);
+              } catch { /* ignore */ }
+            }
+          }
+          lastSeen.current = newest.created_at;
+        }
+        const unread = d.unreadCount ?? 0;
+        document.title = unread > 0 ? `(${unread}) GADAVIRAL` : 'GADAVIRAL';
+      } catch { /* session may be refreshing — next tick retries */ }
+    };
+
+    poll();
+    const t = setInterval(poll, 20000);
+    return () => { clearInterval(t); document.removeEventListener('click', askPermission); document.title = 'GADAVIRAL'; };
+  }, [user?.id]);
+}
+
 // Real-time (Socket.IO) is not available on the WordPress backend. `socket`
 // stays null, so the live listeners (Messages live-append, notification toast)
 // no-op gracefully instead of hammering the API with failing socket requests.
@@ -44,6 +111,7 @@ export default function Layout() {
   const [toast, setToast] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  useInstantNotifications(user, (s) => setToast(s));
 
   const navItems = [
     { to: '/feed', label: 'Feed', icon: '🏠' },

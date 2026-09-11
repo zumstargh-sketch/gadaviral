@@ -84,12 +84,20 @@ export default function PostDetail() {
                 </button>
               ))}
             </div>
-            <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
+            <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <label className="small ghost" style={{ cursor: 'pointer', padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6 }}>
-                📷 Photo
+                🖼️
                 <input type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={(e) => setImgFile(e.target.files?.[0] ?? null)} />
               </label>
+              <label className="small ghost" style={{ cursor: 'pointer', padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6 }}>
+                📷
+                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={(e) => setImgFile(e.target.files?.[0] ?? null)} />
+              </label>
+              <span className="muted" style={{ fontSize: 12 }}>{imgFile ? imgFile.name : 'Add a photo (optional)'}</span>
+            </div>
+            <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
               <button className="primary small" onClick={send} disabled={!text.trim() && !imgFile}>Send</button>
             </div>
           </div>
