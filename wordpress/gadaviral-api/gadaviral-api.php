@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.15
+ * Version: 0.2.16
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -872,6 +872,12 @@ function gadv_google_settings_page() {
 			<?php submit_button('Upload exports.zip', 'secondary', 'submit', false); ?>
 		</form>
 		<p><strong>Step 2 — click Import once</strong>: every stage runs automatically (one request per stage; idempotent — safe to re-click if a stage stops).</p>
+		<?php
+		$exp_dir = __DIR__ . '/exports';
+		$exp_list = [];
+		foreach (glob($exp_dir . '/*.json') ?: [] as $jf) $exp_list[] = basename($jf) . ' — ' . size_format(filesize($jf));
+		echo '<p><strong>Exports folder on the server now contains:</strong> ' . ($exp_list ? esc_html(implode(' · ', $exp_list)) : '<em>empty — upload exports.zip above</em>') . '</p>';
+		?>
 		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent — if a stage stops, clicking again continues where it left off.</p>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_demo_import" />
@@ -1001,11 +1007,20 @@ add_action('admin_post_gadv_demo_import', function () {
 	$done = get_transient('gadv_demo_stages_done');
 	if (!is_array($done)) $done = [];
 
-	// Pick the first stage not marked complete (missing file = complete/no-op).
+	// Pick the first stage not marked complete. A MISSING file is a hard
+	// blocker (never silently skipped, never counted as "complete") — tell the
+	// user to re-upload the exports ZIP.
 	$stage = null;
 	foreach ($stages as $s) {
 		if (isset($done[$s])) continue;
-		if (!file_exists($dir . '/' . $s . '.json')) { $done[$s] = true; continue; }
+		if (!file_exists($dir . '/' . $s . '.json')) {
+			set_transient('gadv_demo_stages_done', $done, 30 * MINUTE_IN_SECONDS);
+			$completed = array_keys($done);
+			set_transient('gadv_demo_import', ['ok' => false, 'msg' => '⛔ ' . ucfirst($s) . '.json is MISSING in the exports folder — re-upload exports.zip (gold box above), then click Import again. Completed so far: ' . (implode(', ', $completed) ?: 'nothing yet') . '.'], 30 * MINUTE_IN_SECONDS);
+			gadv_mail_log('DEMO-IMPORT blocked: ' . $s . '.json missing in exports folder');
+			wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
+			exit;
+		}
 		$stage = $s;
 		break;
 	}
@@ -1083,13 +1098,23 @@ add_action('admin_post_gadv_demo_zip_upload', function () {
 			} else {
 				$zip->extractTo($dir);
 				$zip->close();
-				delete_transient('gadv_demo_stages_done'); // fresh progress for the new dataset
+				// Verify ALL required files landed — partial extracts are the
+				// most common failure (proven live).
+				$required = ['users', 'posts', 'comments', 'reactions', 'follows', 'groups', 'group_members', 'businesses'];
 				$found = [];
-				foreach (['users', 'posts', 'comments', 'reactions', 'follows', 'groups', 'group_members', 'businesses'] as $s) {
-					if (file_exists($dir . '/' . $s . '.json')) $found[] = $s;
+				$missing = [];
+				foreach ($required as $s) {
+					$fp = $dir . '/' . $s . '.json';
+					if (file_exists($fp) && filesize($fp) > 0) $found[] = $s . '.json (' . size_format(filesize($fp)) . ')';
+					else $missing[] = $s . '.json';
 				}
-				$result['ok'] = true;
-				$result['msg'] = 'Exports extracted: ' . implode(', ', $found) . '. Now click "Import demo data" once — it auto-runs every stage.';
+				if (!empty($missing)) {
+					$result['msg'] = '⚠ Extracted, but ' . count($missing) . ' file(s) are MISSING or empty from this ZIP: ' . implode(', ', $missing) . '. Found: ' . implode(', ', $found) . ' — re-upload the correct exports.zip (repo\\scripts\\exports.zip).';
+				} else {
+					delete_transient('gadv_demo_stages_done'); // fresh progress for the new dataset
+					$result['ok'] = true;
+					$result['msg'] = '✔ All 8 exports extracted (' . implode(', ', $found) . '). Now click "Import demo data" once — it auto-runs every stage.';
+				}
 			}
 		}
 	}
