@@ -19,7 +19,20 @@ if (php_sapi_name() === 'cli') {
 $dir = __DIR__ . '/' . $source;
 if (!is_dir($dir)) die("Source dir not found: $dir\n");
 
-function read_json($file) { return json_decode(file_get_contents($file), true); }
+function read_json($file) {
+	$raw = @file_get_contents($file);
+	if ($raw === false) throw new Exception('Cannot read ' . basename($file) . ' — check the file exists and is readable.');
+	// Some tools prepend a UTF-8 BOM which breaks json_decode.
+	$raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
+	$data = json_decode($raw, true);
+	if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+		$size = strlen($raw);
+		$head = trim(preg_replace('/\s+/', ' ', substr($raw, 0, 120)));
+		throw new Exception(basename($file) . ' is not valid JSON (' . json_last_error_msg() . ", $size bytes). File starts with: \"$head\" — re-upload the exports ZIP.");
+	}
+	if (!is_array($data)) throw new Exception(basename($file) . ' does not contain a JSON array of rows.');
+	return $data;
+}
 
 $report = [];
 

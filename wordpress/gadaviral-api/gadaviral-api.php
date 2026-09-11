@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.14
+ * Version: 0.2.15
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
