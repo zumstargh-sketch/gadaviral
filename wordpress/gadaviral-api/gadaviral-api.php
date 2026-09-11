@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.19
+ * Version: 0.2.21
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -195,7 +195,7 @@ function gadv_post_share($request) {
 }
 
 // Uploads: stray upload_path/upload_url_path options (inherited from
-// migrations) write files OUTSIDE the served docroot Ã¢â‚¬â€ every attachment URL
+// migrations) write files OUTSIDE the served docroot ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â every attachment URL
 // then 404s (proven live: upload 200 but file 404 on www and non-www).
 // Force the canonical docroot wp-content/uploads pair so files are served.
 add_filter('upload_dir', function ($dirs) {
@@ -211,13 +211,13 @@ add_filter('upload_dir', function ($dirs) {
 	return $dirs;
 });
 
-/** Canonical API URL for an uploaded attachment Ã¢â‚¬â€ served through REST, because
+/** Canonical API URL for an uploaded attachment ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â served through REST, because
  *  direct wp-content/uploads URLs 404 behind this host's .htaccess hardening. */
 function gadv_media_url($attach_id) {
 	return rest_url('gadaviral/v1/media/attachment/' . intval($attach_id));
 }
 
-// GET /media/attachment/{id} Ã¢â‚¬â€ streams an uploaded image (avatars, covers,
+// GET /media/attachment/{id} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â streams an uploaded image (avatars, covers,
 // comment photos). Public: avatars are public content. Exits before REST
 // converts the response to JSON.
 add_action('rest_api_init', function () {
@@ -331,7 +331,7 @@ function gadv_businesses_create($request) {
 function gadv_create_refresh_token_row($user_id, $expires_seconds = 2592000) {
 	global $wpdb;
 	// Single-device rule: minting a new session token revokes every previous
-	// one for this user Ã¢â‚¬â€ the most recent login/refresh wins, all other
+	// one for this user ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the most recent login/refresh wins, all other
 	// devices are signed out on their next request.
 	$wpdb->query($wpdb->prepare(
 		"UPDATE {$wpdb->prefix}gadv_refresh_tokens SET revoked_at = %s WHERE user_id = %d AND revoked_at IS NULL",
@@ -467,7 +467,7 @@ function gadv_auth_change_password($request) {
 		"UPDATE {$wpdb->prefix}gadv_refresh_tokens SET revoked_at = %s WHERE user_id = %d AND revoked_at IS NULL",
 		current_time('mysql', 1), $user->ID
 	));
-	return rest_ensure_response(['ok' => true, 'message' => 'Password updated Ã¢â‚¬â€ please log in again with your new password.']);
+	return rest_ensure_response(['ok' => true, 'message' => 'Password updated ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â please log in again with your new password.']);
 }
 
 /** POST /auth/change-email (JWT). Body: { newEmail, currentPassword } */
@@ -577,13 +577,13 @@ function gadv_auth_resend_verification($request) {
 // ============================================================================
 // Google Sign-in (OAuth 2.0 / OpenID Connect)
 // ----------------------------------------------------------------------------
-// Web:        GET  /auth/google/url      Ã¢â€ â€™ { url }  (Google authorization URL)
-//             GET  /auth/google/callback Ã¢â€ â€™ exchanges the code, links or creates
+// Web:        GET  /auth/google/url      ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ { url }  (Google authorization URL)
+//             GET  /auth/google/callback ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ exchanges the code, links or creates
 //                                          the account, then 302s to the SPA at
-//                                          /auth/google/complete?accessToken=Ã¢â‚¬Â¦
-// Any client: POST /auth/google/idtoken Ã¢â€ â€™ verifies a Google ID token (JWKS,
-//                                          RS256, iss/exp/aud) Ã¢â‚¬â€ Android/Windows.
-// Credentials live in WP options (WP Admin Ã¢â€ â€™ Settings Ã¢â€ â€™ GADAVIRAL Google).
+//                                          /auth/google/complete?accessToken=ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+// Any client: POST /auth/google/idtoken ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ verifies a Google ID token (JWKS,
+//                                          RS256, iss/exp/aud) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Android/Windows.
+// Credentials live in WP options (WP Admin ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Settings ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ GADAVIRAL Google).
 // ============================================================================
 
 function gadv_b64url_decode($s) {
@@ -616,7 +616,7 @@ function gadv_google_spa_base($referer) {
 	}
 	if (in_array($authority, ['www.gadaviral.com', 'gadaviral.com'], true)) {
 		$path = isset($parts['path']) ? (string) $parts['path'] : '';
-		// Staging lives in a subdirectory of the main site (Ã¢â‚¬Â¦/staging/app/).
+		// Staging lives in a subdirectory of the main site (ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦/staging/app/).
 		if (strpos($path, '/staging') === 0) {
 			return $scheme . '://' . $authority . '/staging/app';
 		}
@@ -629,7 +629,7 @@ function gadv_google_spa_base($referer) {
 function gadv_auth_google_url($request) {
 	$client = get_option('gadv_google_client_id');
 	if (!$client) {
-		return new WP_Error('not_configured', 'Google sign-in is not configured yet (WP Admin Ã¢â€ â€™ Settings Ã¢â€ â€™ GADAVIRAL Google Sign-in)', ['status' => 501]);
+		return new WP_Error('not_configured', 'Google sign-in is not configured yet (WP Admin ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Settings ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ GADAVIRAL Google Sign-in)', ['status' => 501]);
 	}
 	$state = bin2hex(random_bytes(16));
 	// Remember where the user came from (whitelisted) so the callback returns
@@ -650,19 +650,19 @@ function gadv_auth_google_url($request) {
 
 /**
  * Find/link/create the GADAVIRAL account for a verified Google identity
- * (spec Ã‚Â§9 linking + Ã‚Â§96 new-user rules: role stays subscriber, never admin).
+ * (spec Ãƒâ€šÃ‚Â§9 linking + Ãƒâ€šÃ‚Â§96 new-user rules: role stays subscriber, never admin).
  */
 function gadv_google_resolve_user($sub, $email, $name, $picture) {
-	// 1. Already linked to this Google identity Ã¢â€ â€™ same account every time.
+	// 1. Already linked to this Google identity ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ same account every time.
 	$found = get_users(['meta_key' => 'gadv_google_sub', 'meta_value' => $sub, 'number' => 1, 'fields' => 'all']);
 	if (!empty($found)) {
 		// Google just re-proved this mailbox is theirs (the ID token's
-		// email_verified claim was enforced before we got here) Ã¢â‚¬â€ keep the
+		// email_verified claim was enforced before we got here) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â keep the
 		// verified flag set (update_user_meta is a no-op when unchanged).
 		update_user_meta($found[0]->ID, 'gadv_email_verified', 1);
 		return ['user' => get_userdata($found[0]->ID), 'is_new' => false];
 	}
-	// 2. Existing account with the same Google-verified email Ã¢â€ â€™ link (one account, two sign-in methods).
+	// 2. Existing account with the same Google-verified email ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ link (one account, two sign-in methods).
 	$by_email = $email ? get_user_by('email', $email) : null;
 	if ($by_email) {
 		update_user_meta($by_email->ID, 'gadv_google_sub', $sub);
@@ -684,7 +684,7 @@ function gadv_google_resolve_user($sub, $email, $name, $picture) {
 	$user_id = wp_create_user($username, wp_generate_password(24, true, true), $email);
 	if (is_wp_error($user_id)) return ['user' => null, 'is_new' => false];
 	wp_update_user(['ID' => $user_id, 'display_name' => $name !== '' ? $name : $username]);
-	// Google emails are verified Ã¢â‚¬â€ no email confirmation needed (spec Ã‚Â§13).
+	// Google emails are verified ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no email confirmation needed (spec Ãƒâ€šÃ‚Â§13).
 	update_user_meta($user_id, 'gadv_google_sub', $sub);
 	update_user_meta($user_id, 'gadv_auth_provider', 'google');
 	update_user_meta($user_id, 'gadv_email_verified', 1);
@@ -729,7 +729,7 @@ function gadv_auth_google_callback($request) {
 	}
 	$token = json_decode(wp_remote_retrieve_body($resp), true);
 	// The id_token arrives straight from Google's token endpoint over TLS (with
-	// our client_secret) Ã¢â‚¬â€ per OIDC Ã‚Â§3.1.3.7 no local signature check is needed.
+	// our client_secret) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â per OIDC Ãƒâ€šÃ‚Â§3.1.3.7 no local signature check is needed.
 	$claims = json_decode(gadv_b64url_decode(explode('.', $token['id_token'] ?? '')[1] ?? ''), true);
 	if (!$claims || empty($claims['sub'])) gadv_google_redirect($base, ['google' => 'error']);
 	if (empty($claims['email_verified'])) gadv_google_redirect($base, ['google' => 'google_email_unverified']);
@@ -769,8 +769,8 @@ function gadv_jwk_to_pem($jwk) {
 /**
  * Android / Windows / any native client: POST { idToken } obtained from Google's
  * own UI. The token is verified against Google's public JWKS: RS256 signature,
- * expiry, issuer, audience (registered client IDs) Ã¢â‚¬â€ client-supplied profile
- * data is never trusted directly (spec Ã‚Â§13Ã¢â‚¬â€œ16).
+ * expiry, issuer, audience (registered client IDs) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â client-supplied profile
+ * data is never trusted directly (spec Ãƒâ€šÃ‚Â§13ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“16).
  */
 function gadv_auth_google_idtoken($request) {
 	$body = json_decode($request->get_body(), true);
@@ -817,7 +817,7 @@ function gadv_auth_google_idtoken($request) {
 }
 
 // Google profile pictures: short-circuit get_avatar_url() for users that have
-// a stored photo (meta gadv_avatar_url) Ã¢â‚¬â€ covers posts, comments, messages.
+// a stored photo (meta gadv_avatar_url) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â covers posts, comments, messages.
 add_filter('pre_get_avatar_data', function ($args, $id_or_email) {
 	$user_id = 0;
 	if (is_numeric($id_or_email)) $user_id = intval($id_or_email);
@@ -843,13 +843,13 @@ add_action('admin_init', function () {
 	foreach (['gadv_google_client_id', 'gadv_google_client_secret', 'gadv_google_android_client_id', 'gadv_google_desktop_client_id'] as $opt) {
 		register_setting('gadv_google', $opt);
 	}
-	// Outgoing email (SMTP) Ã¢â‚¬â€ avoids depending on third-party SMTP plugins.
+	// Outgoing email (SMTP) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â avoids depending on third-party SMTP plugins.
 	foreach (['gadv_smtp_host', 'gadv_smtp_port', 'gadv_smtp_username', 'gadv_smtp_password', 'gadv_smtp_secure'] as $opt) {
 		register_setting('gadv_google', $opt);
 	}
 });
 
-// All outgoing WordPress mail Ã¢â‚¬â€ including core notices Ã¢â‚¬â€ comes from the
+// All outgoing WordPress mail ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â including core notices ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â comes from the
 // community mailbox, never the default wordpress@gadaviral.com.
 add_filter('wp_mail_from', function () { return 'admin@gadaviral.com'; });
 add_filter('wp_mail_from_name', function () { return 'GADAVIRAL'; });
@@ -891,9 +891,9 @@ function gadv_mail_log($entry) {
 
 /**
  * Send mail without ever letting PHPMailer/SMTP failures fatal the request:
- * wp_mail() only catches PHPMailer's own exceptions Ã¢â‚¬â€ a low-level PHP Error
+ * wp_mail() only catches PHPMailer's own exceptions ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â a low-level PHP Error
  * (TypeError etc.) from a bad SMTP config would otherwise kill the request.
- * Every send is logged (WP Admin Ã¢â€ â€™ Settings Ã¢â€ â€™ GADAVIRAL Google Ã¢â€ â€™ Recent mail
+ * Every send is logged (WP Admin ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Settings ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ GADAVIRAL Google ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Recent mail
  * log) with the exact failure reason.
  */
 function gadv_safe_mail($to, $subject, $message, $tag = 'MAIL') {
@@ -921,8 +921,8 @@ register_shutdown_function(function () {
 function gadv_mail_transport() {
 	$host = get_option('gadv_smtp_host');
 	return $host
-		? 'SMTP Ã¢â€ â€™ ' . $host . ':' . intval(get_option('gadv_smtp_port') ?: 465) . ' (' . (get_option('gadv_smtp_secure') ?: 'ssl') . ') as ' . (get_option('gadv_smtp_username') ?: 'admin@gadaviral.com')
-		: 'PHP mail() Ã¢â‚¬â€ Ã¢Å¡Â Ã¯Â¸Â no SMTP host configured, delivery is unreliable';
+		? 'SMTP ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ' . $host . ':' . intval(get_option('gadv_smtp_port') ?: 465) . ' (' . (get_option('gadv_smtp_secure') ?: 'ssl') . ') as ' . (get_option('gadv_smtp_username') ?: 'admin@gadaviral.com')
+		: 'PHP mail() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â no SMTP host configured, delivery is unreliable';
 }
 function gadv_google_settings_page() {
 	if (!current_user_can('manage_options')) return;
@@ -932,24 +932,24 @@ function gadv_google_settings_page() {
 	$test_ok = isset($_GET['ok']);
 	?>
 	<div class="wrap">
-		<h1>GADAVIRAL Ã¢â‚¬â€ Google Sign-in &amp; Email (SMTP)</h1>
+		<h1>GADAVIRAL ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Google Sign-in &amp; Email (SMTP)</h1>
 		<div style="border:2px solid #F2A900;border-radius:8px;padding:12px 16px;margin:16px 0;background:#fffbe8">
-		<h2>Demo community (117 seeded members Ã‚Â· 150 posts Ã‚Â· comments Ã‚Â· reactions Ã‚Â· follows Ã‚Â· groups Ã‚Â· businesses)</h2>
-		<p><strong>Step 1 Ã¢â‚¬â€ upload the exports ZIP</strong> (found at <code>repo\scripts\exports.zip</code>). No cPanel needed.</p>
+		<h2>Demo community (117 seeded members Ãƒâ€šÃ‚Â· 150 posts Ãƒâ€šÃ‚Â· comments Ãƒâ€šÃ‚Â· reactions Ãƒâ€šÃ‚Â· follows Ãƒâ€šÃ‚Â· groups Ãƒâ€šÃ‚Â· businesses)</h2>
+		<p><strong>Step 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â upload the exports ZIP</strong> (found at <code>repo\scripts\exports.zip</code>). No cPanel needed.</p>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
 			<input type="hidden" name="action" value="gadv_demo_zip_upload" />
 			<?php wp_nonce_field('gadv_demo_zip_upload'); ?>
 			<input type="file" name="demozip" accept=".zip" required />
 			<?php submit_button('Upload exports.zip', 'secondary', 'submit', false); ?>
 		</form>
-		<p><strong>Step 2 Ã¢â‚¬â€ click Import once</strong>: every stage runs automatically (one request per stage; idempotent Ã¢â‚¬â€ safe to re-click if a stage stops).</p>
+		<p><strong>Step 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â click Import once</strong>: every stage runs automatically (one request per stage; idempotent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â safe to re-click if a stage stops).</p>
 		<?php
 		$exp_dir = __DIR__ . '/exports';
 		$exp_list = [];
-		foreach (glob($exp_dir . '/*.json') ?: [] as $jf) $exp_list[] = basename($jf) . ' Ã¢â‚¬â€ ' . size_format(filesize($jf));
-		echo '<p><strong>Exports folder on the server now contains:</strong> ' . ($exp_list ? esc_html(implode(' Ã‚Â· ', $exp_list)) : '<em>empty Ã¢â‚¬â€ upload exports.zip above</em>') . '</p>';
+		foreach (glob($exp_dir . '/*.json') ?: [] as $jf) $exp_list[] = basename($jf) . ' ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ' . size_format(filesize($jf));
+		echo '<p><strong>Exports folder on the server now contains:</strong> ' . ($exp_list ? esc_html(implode(' Ãƒâ€šÃ‚Â· ', $exp_list)) : '<em>empty ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â upload exports.zip above</em>') . '</p>';
 		?>
-		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent Ã¢â‚¬â€ if a stage stops, clicking again continues where it left off.</p>
+		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â if a stage stops, clicking again continues where it left off.</p>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_demo_import" />
 			<?php wp_nonce_field('gadv_demo_import'); ?>
@@ -971,24 +971,24 @@ function gadv_google_settings_page() {
 			<table class="form-table" role="presentation">
 				<tr><th>Web client ID</th><td><input class="regular-text" type="text" name="gadv_google_client_id" value="<?php echo esc_attr(get_option('gadv_google_client_id')); ?>" placeholder="xxxx.apps.googleusercontent.com" /></td></tr>
 				<tr><th>Web client secret</th><td><input class="regular-text" type="password" name="gadv_google_client_secret" value="<?php echo esc_attr(get_option('gadv_google_client_secret')); ?>" autocomplete="new-password" /></td></tr>
-				<tr><th>Android client ID <span class="description">(optional Ã¢â‚¬â€ for the APK later)</span></th><td><input class="regular-text" type="text" name="gadv_google_android_client_id" value="<?php echo esc_attr(get_option('gadv_google_android_client_id')); ?>" /></td></tr>
-				<tr><th>Desktop client ID <span class="description">(optional Ã¢â‚¬â€ for the Windows app later)</span></th><td><input class="regular-text" type="text" name="gadv_google_desktop_client_id" value="<?php echo esc_attr(get_option('gadv_google_desktop_client_id')); ?>" /></td></tr>
+				<tr><th>Android client ID <span class="description">(optional ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â for the APK later)</span></th><td><input class="regular-text" type="text" name="gadv_google_android_client_id" value="<?php echo esc_attr(get_option('gadv_google_android_client_id')); ?>" /></td></tr>
+				<tr><th>Desktop client ID <span class="description">(optional ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â for the Windows app later)</span></th><td><input class="regular-text" type="text" name="gadv_google_desktop_client_id" value="<?php echo esc_attr(get_option('gadv_google_desktop_client_id')); ?>" /></td></tr>
 			</table>
 
 			<hr />
-			<h2>Email (SMTP) Ã¢â‚¬â€ verification codes &amp; password resets</h2>
+			<h2>Email (SMTP) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â verification codes &amp; password resets</h2>
 			<p><strong>Active transport:</strong> <code><?php echo esc_html(gadv_mail_transport()); ?></code></p>
-			<p>Create the mailbox first (cPanel Ã¢â€ â€™ Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
+			<p>Create the mailbox first (cPanel ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Email Accounts, e.g. <code>admin@gadaviral.com</code>), then fill this in.
 				Namecheap: host <code>mail.gadaviral.com</code>, port <code>465</code>, encryption <code>ssl</code>.
 				Leave the host empty to fall back to PHP mail().</p>
 		<?php if ($test_done): ?>
 			<div class="notice <?php echo $test_ok ? 'notice-success' : 'notice-error'; ?> is-dismissible">
 				<p><?php
 					if ($test_ok) {
-						echo 'Ã¢Å“â€¦ Test email sent Ã¢â‚¬â€ check the inbox (and spam folder).';
+						echo 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Test email sent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â check the inbox (and spam folder).';
 					} else {
 						$test_err = isset($_GET['err']) ? rawurldecode($_GET['err']) : '';
-						echo 'Ã¢ÂÅ’ Test email FAILED' . ($test_err ? ' Ã¢â‚¬â€ <code>' . esc_html($test_err) . '</code>' : ' Ã¢â‚¬â€ check host/port/encryption/credentials.');
+						echo 'ÃƒÂ¢Ã‚ÂÃ…â€™ Test email FAILED' . ($test_err ? ' ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â <code>' . esc_html($test_err) . '</code>' : ' ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â check host/port/encryption/credentials.');
 					}
 				?></p>
 			</div>
@@ -1008,14 +1008,14 @@ function gadv_google_settings_page() {
 			<?php submit_button('Save settings (Google + Email)'); ?>
 		</form>
 		<?php if (isset($_GET['verified'])): ?>
-			<div class="notice notice-success is-dismissible"><p>Ã¢Å“â€¦ Account <strong><?php echo esc_html(rawurldecode($_GET['verified'])); ?></strong> verified Ã¢â‚¬â€ they can log in now.</p></div>
+			<div class="notice notice-success is-dismissible"><p>ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Account <strong><?php echo esc_html(rawurldecode($_GET['verified'])); ?></strong> verified ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â they can log in now.</p></div>
 		<?php endif; ?>
 		<?php gadv_unverified_accounts_section(); ?>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_smtp_test" />
 			<?php wp_nonce_field('gadv_smtp_test'); ?>
 			<table class="form-table" role="presentation">
-				<tr><th>Send test to</th><td><input class="regular-text" type="email" name="gadv_test_to" value="<?php echo esc_attr(get_option('admin_email')); ?>" /><p class="description">Use YOUR personal inbox (e.g. your Gmail) Ã¢â‚¬â€ not the site mailbox.</p></td></tr>
+				<tr><th>Send test to</th><td><input class="regular-text" type="email" name="gadv_test_to" value="<?php echo esc_attr(get_option('admin_email')); ?>" /><p class="description">Use YOUR personal inbox (e.g. your Gmail) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not the site mailbox.</p></td></tr>
 			</table>
 			<?php submit_button('Send test email', 'secondary', 'submit', false); ?>
 		</form>
@@ -1023,7 +1023,7 @@ function gadv_google_settings_page() {
 			<input type="hidden" name="action" value="gadv_smtp_autodetect" />
 			<?php wp_nonce_field('gadv_smtp_autodetect'); ?>
 			<?php submit_button('Auto-detect working SMTP port', 'secondary', 'submit', false); ?>
-			<p class="description">Probes the mail host on ports 587 / 465 / 25 and shows which one answers Ã¢â‚¬â€ set the Port + Encryption below to the Ã¢Å“â€¦ line, then Save settings.</p>
+			<p class="description">Probes the mail host on ports 587 / 465 / 25 and shows which one answers ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â set the Port + Encryption below to the ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ line, then Save settings.</p>
 		</form>
 		<?php if (isset($_GET['smtp-auto'])): $auto = get_transient('gadv_smtp_autodetect'); if ($auto): ?>
 			<div class="notice notice-info is-dismissible" style="max-width:900px">
@@ -1032,9 +1032,9 @@ function gadv_google_settings_page() {
 					<?php foreach ($auto['lines'] as $l) echo '<li><code>' . esc_html($l) . '</code></li>'; ?>
 				</ul>
 				<?php if (!empty($auto['best'])): ?>
-					<p>Ã¢Å¾Â¡Ã¯Â¸Â Set <strong><?php echo esc_html($auto['best']); ?></strong> in the form above (username <code>admin@gadaviral.com</code> + its mailbox password), click <strong>Save settings</strong>, then send a test email.</p>
+					<p>ÃƒÂ¢Ã…Â¾Ã‚Â¡ÃƒÂ¯Ã‚Â¸Ã‚Â Set <strong><?php echo esc_html($auto['best']); ?></strong> in the form above (username <code>admin@gadaviral.com</code> + its mailbox password), click <strong>Save settings</strong>, then send a test email.</p>
 				<?php else: ?>
-					<p>Ã¢ÂÅ’ No port answered Ã¢â‚¬â€ the mail service may be down for this account. Contact Namecheap support with these results.</p>
+					<p>ÃƒÂ¢Ã‚ÂÃ…â€™ No port answered ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the mail service may be down for this account. Contact Namecheap support with these results.</p>
 				<?php endif; ?>
 			</div>
 		<?php endif; endif; ?>
@@ -1060,14 +1060,14 @@ add_action('admin_post_gadv_smtp_test', function () {
 	$to = isset($_POST['gadv_test_to']) ? sanitize_email($_POST['gadv_test_to']) : '';
 	if (!$to) $to = get_option('admin_email');
 	$transport = gadv_mail_transport();
-	$sent = gadv_safe_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. Ã¢Å“â€¦\n\nTransport: " . $transport, 'TEST');
+	$sent = gadv_safe_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦\n\nTransport: " . $transport, 'TEST');
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err ?? '')], admin_url('options-general.php')));
 	exit;
 });
 
-// One-click demo data import: ONE click auto-runs every stage (users Ã¢â€ â€™ posts
-// Ã¢â€ â€™ comments Ã¢â€ â€™ reactions Ã¢â€ â€™ follows Ã¢â€ â€™ groups Ã¢â€ â€™ group_members Ã¢â€ â€™ businesses) via
-// a redirect chain Ã¢â‚¬â€ one request per stage so shared-hosting time limits can
+// One-click demo data import: ONE click auto-runs every stage (users ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ posts
+// ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ comments ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ reactions ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ follows ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ groups ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ group_members ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ businesses) via
+// a redirect chain ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â one request per stage so shared-hosting time limits can
 // never abort the chain. Every stage is idempotent (gadv_pg_id skips done rows).
 add_action('admin_post_gadv_demo_import', function () {
 	if (!current_user_can('manage_options')) wp_die('Forbidden');
@@ -1079,7 +1079,7 @@ add_action('admin_post_gadv_demo_import', function () {
 	if (!is_array($done)) $done = [];
 
 	// Pick the first stage not marked complete. A MISSING file is a hard
-	// blocker (never silently skipped, never counted as "complete") Ã¢â‚¬â€ tell the
+	// blocker (never silently skipped, never counted as "complete") ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tell the
 	// user to re-upload the exports ZIP.
 	$stage = null;
 	foreach ($stages as $s) {
@@ -1087,7 +1087,7 @@ add_action('admin_post_gadv_demo_import', function () {
 		if (!file_exists($dir . '/' . $s . '.json')) {
 			set_transient('gadv_demo_stages_done', $done, 30 * MINUTE_IN_SECONDS);
 			$completed = array_keys($done);
-			set_transient('gadv_demo_import', ['ok' => false, 'msg' => 'Ã¢â€ºâ€ ' . ucfirst($s) . '.json is MISSING in the exports folder Ã¢â‚¬â€ re-upload exports.zip (gold box above), then click Import again. Completed so far: ' . (implode(', ', $completed) ?: 'nothing yet') . '.'], 30 * MINUTE_IN_SECONDS);
+			set_transient('gadv_demo_import', ['ok' => false, 'msg' => 'ÃƒÂ¢Ã¢â‚¬ÂºÃ¢â‚¬Â ' . ucfirst($s) . '.json is MISSING in the exports folder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â re-upload exports.zip (gold box above), then click Import again. Completed so far: ' . (implode(', ', $completed) ?: 'nothing yet') . '.'], 30 * MINUTE_IN_SECONDS);
 			gadv_mail_log('DEMO-IMPORT blocked: ' . $s . '.json missing in exports folder');
 			wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
 			exit;
@@ -1098,7 +1098,7 @@ add_action('admin_post_gadv_demo_import', function () {
 
 	if ($stage === null) {
 		set_transient('gadv_demo_stages_done', $done, 30 * MINUTE_IN_SECONDS);
-		set_transient('gadv_demo_import', ['ok' => true, 'msg' => 'Ã¢Å“â€ All stages complete Ã¢â‚¬â€ the seeded community is live. Re-running is safe (idempotent).'], 30 * MINUTE_IN_SECONDS);
+		set_transient('gadv_demo_import', ['ok' => true, 'msg' => 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â All stages complete ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the seeded community is live. Re-running is safe (idempotent).'], 30 * MINUTE_IN_SECONDS);
 		gadv_mail_log('DEMO-IMPORT all stages complete');
 		wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
 		exit;
@@ -1117,14 +1117,14 @@ add_action('admin_post_gadv_demo_import', function () {
 				$r = $report[$stage];
 				$result['msg'] = ucfirst($stage) . ": source={$r['source']} imported={$r['imported']} skipped={$r['skipped']} failed={$r['failed']}" . (!empty($r['duplicates']) ? " duplicates={$r['duplicates']}" : '');
 				$result['ok'] = ($r['failed'] === 0);
-				if ($result['ok']) $done[$stage] = true; // completed Ã¢â‚¬â€ auto-advance
+				if ($result['ok']) $done[$stage] = true; // completed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â auto-advance
 			} else {
-				$result['msg'] = ucfirst($stage) . ': file missing in exports folder Ã¢â‚¬â€ stage skipped.';
+				$result['msg'] = ucfirst($stage) . ': file missing in exports folder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â stage skipped.';
 				$done[$stage] = true;
 			}
 		} catch (Throwable $e) {
 			ob_end_clean();
-			$result['msg'] = ucfirst($stage) . " stopped: " . get_class($e) . ': ' . $e->getMessage() . ' Ã¢â‚¬â€ idempotent, click Import again to continue this stage.';
+			$result['msg'] = ucfirst($stage) . " stopped: " . get_class($e) . ': ' . $e->getMessage() . ' ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â idempotent, click Import again to continue this stage.';
 		}
 	}
 
@@ -1146,7 +1146,7 @@ add_action('admin_post_gadv_demo_import', function () {
 	exit;
 });
 
-// Browser upload of the demo exports ZIP Ã¢â‚¬â€ no cPanel needed. Uploads and
+// Browser upload of the demo exports ZIP ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no cPanel needed. Uploads and
 // extracts exports.zip into the exports folder, then "Import demo data" runs
 // every stage automatically.
 add_action('admin_post_gadv_demo_zip_upload', function () {
@@ -1156,20 +1156,20 @@ add_action('admin_post_gadv_demo_zip_upload', function () {
 	if (empty($_FILES['demozip']) || $_FILES['demozip']['error'] !== UPLOAD_ERR_OK) {
 		$result['msg'] = 'ZIP upload failed (error ' . ($_FILES['demozip']['error'] ?? 'none') . ').';
 	} elseif (!class_exists('ZipArchive')) {
-		$result['msg'] = 'PHP ZipArchive is missing on this host Ã¢â‚¬â€ upload the exports folder via cPanel instead.';
+		$result['msg'] = 'PHP ZipArchive is missing on this host ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â upload the exports folder via cPanel instead.';
 	} else {
 		$dir = __DIR__ . '/exports';
 		if (!wp_mkdir_p($dir)) {
-			$result['msg'] = 'Cannot create the exports dir (wp-content/plugins/gadaviral-api/exports) Ã¢â‚¬â€ check folder permissions.';
+			$result['msg'] = 'Cannot create the exports dir (wp-content/plugins/gadaviral-api/exports) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â check folder permissions.';
 		} else {
 			$zip = new ZipArchive();
 			$res = $zip->open($_FILES['demozip']['tmp_name']);
 			if ($res !== true) {
-				$result['msg'] = 'Cannot open the ZIP (code ' . $res . ') Ã¢â‚¬â€ is it a valid zip?';
+				$result['msg'] = 'Cannot open the ZIP (code ' . $res . ') ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â is it a valid zip?';
 			} else {
 				$zip->extractTo($dir);
 				$zip->close();
-				// Verify ALL required files landed Ã¢â‚¬â€ partial extracts are the
+				// Verify ALL required files landed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â partial extracts are the
 				// most common failure (proven live).
 				$required = ['users', 'posts', 'comments', 'reactions', 'follows', 'groups', 'group_members', 'businesses'];
 				$found = [];
@@ -1180,11 +1180,11 @@ add_action('admin_post_gadv_demo_zip_upload', function () {
 					else $missing[] = $s . '.json';
 				}
 				if (!empty($missing)) {
-					$result['msg'] = 'Ã¢Å¡Â  Extracted, but ' . count($missing) . ' file(s) are MISSING or empty from this ZIP: ' . implode(', ', $missing) . '. Found: ' . implode(', ', $found) . ' Ã¢â‚¬â€ re-upload the correct exports.zip (repo\\scripts\\exports.zip).';
+					$result['msg'] = 'ÃƒÂ¢Ã…Â¡Ã‚Â  Extracted, but ' . count($missing) . ' file(s) are MISSING or empty from this ZIP: ' . implode(', ', $missing) . '. Found: ' . implode(', ', $found) . ' ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â re-upload the correct exports.zip (repo\\scripts\\exports.zip).';
 				} else {
 					delete_transient('gadv_demo_stages_done'); // fresh progress for the new dataset
 					$result['ok'] = true;
-					$result['msg'] = 'Ã¢Å“â€ All 8 exports extracted (' . implode(', ', $found) . '). Now click "Import demo data" once Ã¢â‚¬â€ it auto-runs every stage.';
+					$result['msg'] = 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â All 8 exports extracted (' . implode(', ', $found) . '). Now click "Import demo data" once ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it auto-runs every stage.';
 				}
 			}
 		}
@@ -1213,7 +1213,7 @@ add_action('admin_post_gadv_smtp_autodetect', function () {
 		$port = $try[0]; $crypto = $try[1]; $label = $try[2];
 		$fp = @fsockopen(($crypto === 'ssl' ? 'ssl://' : '') . $host, $port, $errno, $errstr, 6);
 		if (!$fp) {
-			$lines[] = "port $port ($label): Ã¢ÂÅ’ closed Ã¢â‚¬â€ " . ($errstr !== '' ? $errstr : "error $errno");
+			$lines[] = "port $port ($label): ÃƒÂ¢Ã‚ÂÃ…â€™ closed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â " . ($errstr !== '' ? $errstr : "error $errno");
 			continue;
 		}
 		stream_set_timeout($fp, 6);
@@ -1227,18 +1227,18 @@ add_action('admin_post_gadv_smtp_autodetect', function () {
 		}
 		fclose($fp);
 		$greeting = trim(str_replace("\r", '', explode("\n", $banner)[0]));
-		$lines[] = "port $port ($label): Ã¢Å“â€¦ OPEN Ã¢â‚¬â€ " . ($greeting !== '' ? $greeting : 'connected');
+		$lines[] = "port $port ($label): ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ OPEN ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â " . ($greeting !== '' ? $greeting : 'connected');
 	}
 	$best = '';
 	foreach ($lines as $l) {
-		if (strpos($l, 'Ã¢Å“â€¦ OPEN') === false) continue;
+		if (strpos($l, 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ OPEN') === false) continue;
 		if (strpos($l, 'port 587') === 0) { $best = 'Port 587 + Encryption TLS'; }
 		elseif (strpos($l, 'port 465') === 0) { $best = 'Port 465 + Encryption SSL'; }
 		elseif (strpos($l, 'port 25') === 0) { $best = 'Port 25 + Encryption None'; }
 		break;
 	}
 	set_transient('gadv_smtp_autodetect', ['host' => $host, 'lines' => $lines, 'best' => $best], 10 * MINUTE_IN_SECONDS);
-	gadv_mail_log('AUTO-DETECT host=' . $host . ' Ã¢â€ â€™ ' . implode(' | ', $lines));
+	gadv_mail_log('AUTO-DETECT host=' . $host . ' ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ' . implode(' | ', $lines));
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-auto' => 1], admin_url('options-general.php')));
 	exit;
 });
@@ -1265,7 +1265,7 @@ function gadv_unverified_accounts_section() {
 	$all = [];
 	foreach (array_merge($users, $also) as $u) { $all[$u->ID] = $u; }
 	if (empty($all)) {
-		echo '<p style="color:#00a32a">Ã¢Å“â€¦ No unverified accounts Ã¢â‚¬â€ everyone can log in.</p>';
+		echo '<p style="color:#00a32a">ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ No unverified accounts ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â everyone can log in.</p>';
 		return;
 	}
 	echo '<p>' . count($all) . ' account(s) waiting for email verification. ' .
@@ -1279,7 +1279,7 @@ function gadv_unverified_accounts_section() {
 	}
 	echo '</tbody></table>';
 }
-/** GET /users/me Ã¢â‚¬â€ the profile page reads this; PATCH returns the same shape. */
+/** GET /users/me ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the profile page reads this; PATCH returns the same shape. */
 /** Normalize a livestream URL into an embeddable player URL.
  *  Supports YouTube (watch/share/live links), Facebook (watch/live/videos)
  *  and Twitch (channel). Returns '' when nothing matches. */
@@ -1313,13 +1313,15 @@ function gadv_stream_embed_url($raw) {
 	return '';
 }
 
-/** GET /users/me Ã¢â‚¬â€ the profile page reads this; PATCH returns the same shape. */
-function gadv_user_get_me($request) {, 'Authentication required', ['status' => 401]);
+/** GET /users/me ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the profile page reads this; PATCH returns the same shape. */
+function gadv_user_get_me($request) {
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
 	$public = gadv_user_public(get_userdata($user->ID));
 	return rest_ensure_response(array_merge($public, ['user' => $public, 'profile' => gadv_user_profile_payload($user->ID)]));
 }
 
-/** POST /users/me (PATCH) Ã¢â‚¬â€ update the signed-in profile. */
+/** POST /users/me (PATCH) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â update the signed-in profile. */
 function gadv_user_update_me($request) {
 	$user = gadv_get_request_user($request);
 	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
@@ -1329,7 +1331,7 @@ function gadv_user_update_me($request) {
 	if (isset($body['fullName'])) $update['display_name'] = sanitize_text_field($body['fullName']);
 	elseif (isset($body['full_name'])) $update['display_name'] = sanitize_text_field($body['full_name']);
 	if (!empty($update)) wp_update_user(array_merge(['ID' => $user->ID], $update));
-	// Scalar profile fields Ã¢â€ â€™ user meta (keys mirror the previous backend).
+	// Scalar profile fields ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ user meta (keys mirror the previous backend).
 	$scalar = [
 		'location' => 'gadv_location', 'hometown' => 'gadv_hometown',
 		'community' => 'gadv_community', 'occupation' => 'gadv_occupation',
@@ -1393,7 +1395,7 @@ function gadv_comment_replies($request) {
 
 function gadv_posts_media_upload($request) {
 	// The composer uploads multipart form-data: field "media" (array, up to 6)
-	// plus content/visibility Ã¢â‚¬â€ and expects a post to be created (like the
+	// plus content/visibility ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â and expects a post to be created (like the
 	// previous backend's POST /posts/media). A bare "file" upload (attachment
 	// only) is still supported for backwards compatibility.
 	$user = gadv_get_request_user($request);
@@ -2593,7 +2595,7 @@ function gadv_jwt_secret() {
 		}
 		add_option('gadv_jwt_secret', $s, '', false);
 		if (get_option('gadv_jwt_secret') !== $s) {
-			// Option appeared concurrently Ã¢â‚¬â€ prefer the stored value.
+			// Option appeared concurrently ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prefer the stored value.
 			$s = get_option('gadv_jwt_secret');
 		}
 	}
@@ -2754,7 +2756,7 @@ add_action('rest_api_init', function () {
 		'methods' => 'POST',
 		'callback' => 'gadv_user_upload_asset',
 		'permission_callback' => 'gadv_require_jwt',
-		// NOTE: do NOT declare 'image' as a REST arg Ã¢â‚¬â€ WordPress validates args
+		// NOTE: do NOT declare 'image' as a REST arg ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â WordPress validates args
 		// against JSON/query params only and would 400 every multipart upload
 		// before the handler reads $_FILES (the handler validates the file).
 	]);
@@ -2885,7 +2887,7 @@ function gadv_auth_login($request) {
 		return new WP_Error('invalid', 'Missing credentials', ['status' => 400]);
 	}
 	// The app form asks for the EMAIL. WordPress accounts are keyed by
-	// user_login (which may differ from the email Ã¢â‚¬â€ e.g. 'nii_tetteh'), so
+	// user_login (which may differ from the email ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â e.g. 'nii_tetteh'), so
 	// resolve the email to the actual login name before signing on.
 	$by_email = get_user_by('email', $username);
 	if ($by_email) $username = $by_email->user_login;
@@ -2991,7 +2993,7 @@ function gadv_resolve_user($param) {
 function gadv_user_by_username($request) {
 	$username = $request->get_param('username');
 	if ($username === 'me') {
-		// /users/me is captured by this wildcard route Ã¢â‚¬â€ resolve to the JWT user.
+		// /users/me is captured by this wildcard route ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â resolve to the JWT user.
 		$me = gadv_get_request_user($request);
 		if (!$me) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
 		$user = $me;
@@ -3040,7 +3042,7 @@ function gadv_hydrate_post($p, $viewer_id = null) {
 	$pid = intval($p->ID);
 	$author = get_userdata(intval($p->post_author));
 	$ameta = $author ? get_user_meta($author->ID) : [];
-	// Live stream (LIVE posts) Ã¢â‚¬â€ embeddable player URL
+	// Live stream (LIVE posts) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â embeddable player URL
 	$stream = null;
 	if (get_post_meta($pid, 'gadv_type', true) === 'LIVE') {
 		$surl = get_post_meta($pid, 'gadv_stream_url', true);
@@ -3058,7 +3060,7 @@ function gadv_hydrate_post($p, $viewer_id = null) {
 			'position' => intval($m->menu_order),
 		];
 	}
-	// Poll (if any) Ã¢â‚¬â€ reuse the poll id from the first votes row if needed
+	// Poll (if any) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â reuse the poll id from the first votes row if needed
 	$poll = null;
 	$poll_row = $wpdb->get_row($wpdb->prepare("SELECT id, question FROM {$wpdb->prefix}gadv_polls WHERE post_id = %d", $pid));
 	if ($poll_row) {
@@ -3160,7 +3162,7 @@ function gadv_posts_create($request) {
 	$content = isset($payload['content']) ? wp_kses_post($payload['content']) : '';
 	$type = isset($payload['type']) ? strtoupper(sanitize_text_field($payload['type'])) : 'TEXT';
 	if (!in_array($type, ['TEXT', 'PHOTO', 'VIDEO', 'POLL', 'ANNOUNCEMENT', 'LIVE'], true)) $type = 'TEXT';
-	// LIVE posts carry a stream embed URL (YouTube / Facebook / Twitch Ã¢â‚¬Â¦).
+	// LIVE posts carry a stream embed URL (YouTube / Facebook / Twitch ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦).
 	$stream_url = '';
 	if ($type === 'LIVE') {
 		$raw_stream = isset($payload['streamUrl']) ? esc_url_raw((string) $payload['streamUrl']) : '';
