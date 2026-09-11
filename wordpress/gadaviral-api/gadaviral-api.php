@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.9
+ * Version: 0.2.10
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -394,7 +394,7 @@ function gadv_auth_change_email($request) {
 		'expires_at' => date('Y-m-d H:i:s', time() + 3600),
 		'created_at' => current_time('mysql', 1),
 	]);
-	$link = home_url('/app/settings?confirmEmail=' . $token);
+	$link = home_url('/settings?confirmEmail=' . $token);
 	gadv_safe_mail($newEmail, 'GADAVIRAL email change confirmation', "Confirm your new email address: $link\n\nIf you did not request this, ignore this email.", 'CHANGE-EMAIL');
 	return rest_ensure_response(['ok' => true, 'message' => 'Confirmation email sent to ' . $newEmail . '. Your email updates after you confirm.']);
 }
@@ -410,7 +410,7 @@ function gadv_auth_forgot_password($request) {
 		$hash = wp_hash_password($token);
 		$expires = date('Y-m-d H:i:s', time() + 3600);
 		$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user->ID, 'purpose' => 'RESET_PASSWORD', 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
-		$link = home_url('/app/reset?token=' . $token);
+		$link = home_url('/reset-password?token=' . $token);
 		gadv_safe_mail($email, 'GADAVIRAL password reset', "Reset your password: $link\n\nIf you did not request this, ignore this email.", 'RESET');
 	}
 	// Always return success to avoid email enumeration
@@ -745,6 +745,11 @@ add_action('admin_init', function () {
 		register_setting('gadv_google', $opt);
 	}
 });
+
+// All outgoing WordPress mail — including core notices — comes from the
+// community mailbox, never the default wordpress@gadaviral.com.
+add_filter('wp_mail_from', function () { return 'admin@gadaviral.com'; });
+add_filter('wp_mail_from_name', function () { return 'GADAVIRAL'; });
 
 // Route ALL WordPress mail (verification codes, password resets, email
 // changes, admin notices) through authenticated SMTP when configured.

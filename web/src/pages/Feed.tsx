@@ -46,7 +46,7 @@ export default function Feed() {
       <Composer onPosted={() => load(1, feed, true)} />
       {posts.map((p) => <PostCard key={p.id} post={p} onChange={() => load(1, feed, true)} />)}
       <div ref={loader} style={{ textAlign: 'center', padding: 20 }} className="muted">
-        {loading ? 'Loading…' : hasMore ? '' : 'You reached the end — medaase!'}
+        {loading ? 'Loading…' : hasMore ? '' : 'Osuh Nyagbee — Shidaa'}
       </div>
     </div>
   );
