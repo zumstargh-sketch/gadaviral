@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.7
+ * Version: 0.2.8
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -766,6 +766,7 @@ add_action('phpmailer_init', function ($phpmailer) {
 		$phpmailer->SMTPSecure = $secure;
 	}
 	$from = get_option('gadv_smtp_username') ?: 'admin@gadaviral.com';
+	if (!is_email($from)) $from = 'admin@gadaviral.com'; // a bad username must fail at SMTP AUTH, never crash setFrom()
 	$phpmailer->setFrom($from, 'GADAVIRAL');
 });
 
