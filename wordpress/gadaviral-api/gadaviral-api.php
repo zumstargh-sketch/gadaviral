@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.5
+ * Version: 0.2.6
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -769,7 +769,13 @@ add_action('phpmailer_init', function ($phpmailer) {
 	$phpmailer->SMTPAuth = true;
 	$phpmailer->Username = get_option('gadv_smtp_username');
 	$phpmailer->Password = get_option('gadv_smtp_password');
-	$phpmailer->SMTPSecure = get_option('gadv_smtp_secure') ?: 'ssl'; // 'ssl' (465) or 'tls' (587)
+	$secure = get_option('gadv_smtp_secure') ?: 'ssl'; // 'ssl' (465), 'tls' (587) or 'none' (25)
+	if ($secure === 'none') {
+		$phpmailer->SMTPSecure = '';
+		$phpmailer->SMTPAutoTLS = true; // opportunistic STARTTLS if the server offers it
+	} else {
+		$phpmailer->SMTPSecure = $secure;
+	}
 	$from = get_option('gadv_smtp_username') ?: 'admin@gadaviral.com';
 	$phpmailer->setFrom($from, 'GADAVIRAL');
 });
@@ -839,6 +845,7 @@ function gadv_google_settings_page() {
 					<select name="gadv_smtp_secure">
 						<option value="ssl" <?php selected(get_option('gadv_smtp_secure') ?: 'ssl', 'ssl'); ?>>SSL (port 465)</option>
 						<option value="tls" <?php selected(get_option('gadv_smtp_secure'), 'tls'); ?>>TLS (port 587)</option>
+						<option value="none" <?php selected(get_option('gadv_smtp_secure'), 'none'); ?>>None (port 25, plain)</option>
 					</select></td></tr>
 				<tr><th>Username <span class="description">(the mailbox = the From address)</span></th><td><input class="regular-text" type="text" name="gadv_smtp_username" value="<?php echo esc_attr(get_option('gadv_smtp_username')); ?>" placeholder="admin@gadaviral.com" /></td></tr>
 				<tr><th>Password</th><td><input class="regular-text" type="password" name="gadv_smtp_password" value="<?php echo esc_attr(get_option('gadv_smtp_password')); ?>" autocomplete="new-password" /></td></tr>
@@ -857,6 +864,25 @@ function gadv_google_settings_page() {
 			</table>
 			<?php submit_button('Send test email', 'secondary', 'submit', false); ?>
 		</form>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+			<input type="hidden" name="action" value="gadv_smtp_autodetect" />
+			<?php wp_nonce_field('gadv_smtp_autodetect'); ?>
+			<?php submit_button('Auto-detect working SMTP port', 'secondary', 'submit', false); ?>
+			<p class="description">Probes the mail host on ports 587 / 465 / 25 and shows which one answers — set the Port + Encryption below to the ✅ line, then Save settings.</p>
+		</form>
+		<?php if (isset($_GET['smtp-auto'])): $auto = get_transient('gadv_smtp_autodetect'); if ($auto): ?>
+			<div class="notice notice-info is-dismissible" style="max-width:900px">
+				<p><strong>Auto-detect for <code><?php echo esc_html($auto['host']); ?></code>:</strong></p>
+				<ul style="margin-left:22px;list-style:disc">
+					<?php foreach ($auto['lines'] as $l) echo '<li><code>' . esc_html($l) . '</code></li>'; ?>
+				</ul>
+				<?php if (!empty($auto['best'])): ?>
+					<p>➡️ Set <strong><?php echo esc_html($auto['best']); ?></strong> in the form above (username <code>admin@gadaviral.com</code> + its mailbox password), click <strong>Save settings</strong>, then send a test email.</p>
+				<?php else: ?>
+					<p>❌ No port answered — the mail service may be down for this account. Contact Namecheap support with these results.</p>
+				<?php endif; ?>
+			</div>
+		<?php endif; endif; ?>
 		<?php
 		$upload = wp_upload_dir();
 		$log_file = trailingslashit($upload['basedir']) . 'gadv-mail-log.txt';
@@ -883,6 +909,55 @@ add_action('admin_post_gadv_smtp_test', function () {
 	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
 	gadv_mail_log("TEST to=$to result=" . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . " transport=$transport");
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err)], admin_url('options-general.php')));
+	exit;
+});
+
+// SMTP auto-detect: probe the mail host on 587/465/25 and show which port answers.
+add_action('admin_post_gadv_smtp_autodetect', function () {
+	if (!current_user_can('manage_options')) wp_die('Forbidden');
+	check_admin_referer('gadv_smtp_autodetect');
+	$host = get_option('gadv_smtp_host');
+	if (!$host) {
+		$domain = preg_replace('/^www\./', '', (string) parse_url(home_url(), PHP_URL_HOST));
+		$host = $domain ? 'mail.' . $domain : 'mail.gadaviral.com';
+	}
+	$tries = [
+		[587, 'tls', 'STARTTLS'],
+		[465, 'ssl', 'implicit SSL'],
+		[25, 'none', 'plain'],
+	];
+	$lines = [];
+	foreach ($tries as $try) {
+		$port = $try[0]; $crypto = $try[1]; $label = $try[2];
+		$fp = @fsockopen(($crypto === 'ssl' ? 'ssl://' : '') . $host, $port, $errno, $errstr, 6);
+		if (!$fp) {
+			$lines[] = "port $port ($label): ❌ closed — " . ($errstr !== '' ? $errstr : "error $errno");
+			continue;
+		}
+		stream_set_timeout($fp, 6);
+		$banner = '';
+		$deadline = time() + 6;
+		while (!feof($fp) && time() < $deadline) {
+			$chunk = fgets($fp, 1024);
+			if ($chunk === false) break;
+			$banner .= $chunk;
+			if (preg_match('/^220[ -]/', $banner)) break; // SMTP greeting received
+		}
+		fclose($fp);
+		$greeting = trim(str_replace("\r", '', explode("\n", $banner)[0]));
+		$lines[] = "port $port ($label): ✅ OPEN — " . ($greeting !== '' ? $greeting : 'connected');
+	}
+	$best = '';
+	foreach ($lines as $l) {
+		if (strpos($l, '✅ OPEN') === false) continue;
+		if (strpos($l, 'port 587') === 0) { $best = 'Port 587 + Encryption TLS'; }
+		elseif (strpos($l, 'port 465') === 0) { $best = 'Port 465 + Encryption SSL'; }
+		elseif (strpos($l, 'port 25') === 0) { $best = 'Port 25 + Encryption None'; }
+		break;
+	}
+	set_transient('gadv_smtp_autodetect', ['host' => $host, 'lines' => $lines, 'best' => $best], 10 * MINUTE_IN_SECONDS);
+	gadv_mail_log('AUTO-DETECT host=' . $host . ' → ' . implode(' | ', $lines));
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-auto' => 1], admin_url('options-general.php')));
 	exit;
 });
 
