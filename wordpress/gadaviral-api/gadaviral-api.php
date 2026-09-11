@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -395,10 +395,7 @@ function gadv_auth_change_email($request) {
 		'created_at' => current_time('mysql', 1),
 	]);
 	$link = home_url('/app/settings?confirmEmail=' . $token);
-	$GLOBALS['gadv_last_mail_error'] = '';
-	$sent = wp_mail($newEmail, 'GADAVIRAL email change confirmation', "Confirm your new email address: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
-	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
-	gadv_mail_log('CHANGE-EMAIL to=' . $newEmail . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : ''));
+	gadv_safe_mail($newEmail, 'GADAVIRAL email change confirmation', "Confirm your new email address: $link\n\nIf you did not request this, ignore this email.", 'CHANGE-EMAIL');
 	return rest_ensure_response(['ok' => true, 'message' => 'Confirmation email sent to ' . $newEmail . '. Your email updates after you confirm.']);
 }
 
@@ -414,10 +411,7 @@ function gadv_auth_forgot_password($request) {
 		$expires = date('Y-m-d H:i:s', time() + 3600);
 		$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user->ID, 'purpose' => 'RESET_PASSWORD', 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
 		$link = home_url('/app/reset?token=' . $token);
-		$GLOBALS['gadv_last_mail_error'] = '';
-		$sent = wp_mail($email, 'GADAVIRAL password reset', "Reset your password: $link\n\nIf you did not request this, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
-		$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
-		gadv_mail_log('RESET to=' . $email . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : ''));
+		gadv_safe_mail($email, 'GADAVIRAL password reset', "Reset your password: $link\n\nIf you did not request this, ignore this email.", 'RESET');
 	}
 	// Always return success to avoid email enumeration
 	return rest_ensure_response(['ok' => true]);
@@ -468,12 +462,7 @@ function gadv_send_verification_otp($user_id, $email) {
 	$hash = wp_hash_password((string) $otp);
 	$expires = date('Y-m-d H:i:s', time() + 600);
 	$wpdb->insert($wpdb->prefix . 'gadv_email_tokens', ['user_id' => $user_id, 'purpose' => 'OTP_VERIFY', 'otp' => $otp, 'token_hash' => $hash, 'expires_at' => $expires, 'created_at' => current_time('mysql', 1)]);
-	$GLOBALS['gadv_last_mail_error'] = '';
-	$sent = wp_mail($email, 'GADAVIRAL verification code', "Welcome to GADAVIRAL!\n\nYour verification code is: $otp\n\nEnter it in the app to activate your account. This code expires in 10 minutes.\n\nIf you did not create an account, ignore this email.", ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
-	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
-	// Every OTP send is logged (WP Admin → Settings → GADAVIRAL Google →
-	// Recent mail log) so "the code never arrived" is diagnosable remotely.
-	gadv_mail_log('OTP to=' . $email . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . ' transport=' . gadv_mail_transport());
+	gadv_safe_mail($email, 'GADAVIRAL verification code', "Welcome to GADAVIRAL!\n\nYour verification code is: $otp\n\nEnter it in the app to activate your account. This code expires in 10 minutes.\n\nIf you did not create an account, ignore this email.", 'OTP');
 }
 
 function gadv_auth_resend_verification($request) {
@@ -791,6 +780,34 @@ function gadv_mail_log($entry) {
 	@file_put_contents(trailingslashit($upload['basedir']) . 'gadv-mail-log.txt', '[' . current_time('mysql') . '] ' . $entry . "\n", FILE_APPEND);
 }
 
+/**
+ * Send mail without ever letting PHPMailer/SMTP failures fatal the request:
+ * wp_mail() only catches PHPMailer's own exceptions — a low-level PHP Error
+ * (TypeError etc.) from a bad SMTP config would otherwise kill the request.
+ * Every send is logged (WP Admin → Settings → GADAVIRAL Google → Recent mail
+ * log) with the exact failure reason.
+ */
+function gadv_safe_mail($to, $subject, $message, $tag = 'MAIL') {
+	$GLOBALS['gadv_last_mail_error'] = '';
+	$sent = false;
+	try {
+		$sent = wp_mail($to, $subject, $message, ['From' => 'GADAVIRAL <admin@gadaviral.com>']);
+	} catch (Throwable $e) {
+		$GLOBALS['gadv_last_mail_error'] = get_class($e) . ': ' . $e->getMessage();
+	}
+	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
+	gadv_mail_log($tag . ' to=' . $to . ' result=' . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . ' transport=' . gadv_mail_transport());
+	return $sent;
+}
+
+// Last-resort visibility: any fatal PHP error anywhere is recorded in the admin mail log.
+register_shutdown_function(function () {
+	$e = error_get_last();
+	if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true) && function_exists('gadv_mail_log')) {
+		gadv_mail_log('FATAL ' . $e['message'] . ' in ' . $e['file'] . ':' . $e['line']);
+	}
+});
+
 /** One-line description of the active mail transport. */
 function gadv_mail_transport() {
 	$host = get_option('gadv_smtp_host');
@@ -905,10 +922,8 @@ add_action('admin_post_gadv_smtp_test', function () {
 	$to = isset($_POST['gadv_test_to']) ? sanitize_email($_POST['gadv_test_to']) : '';
 	if (!$to) $to = get_option('admin_email');
 	$transport = gadv_mail_transport();
-	$sent = wp_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. ✅\n\nTransport: " . $transport);
-	$err = isset($GLOBALS['gadv_last_mail_error']) ? $GLOBALS['gadv_last_mail_error'] : '';
-	gadv_mail_log("TEST to=$to result=" . ($sent ? 'ACCEPTED' : 'FAILED') . ($err ? " error=$err" : '') . " transport=$transport");
-	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err)], admin_url('options-general.php')));
+	$sent = gadv_safe_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. ✅\n\nTransport: " . $transport, 'TEST');
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err ?? '')], admin_url('options-general.php')));
 	exit;
 });
 
@@ -2644,9 +2659,10 @@ function gadv_user_by_username($request) {
  * Hydrate one WP post into the shape the SPA expects (author fields, counts,
  * media, poll, viewer reaction). Mirrors the previous backend's hydratePosts().
  */
-/** Strip Gutenberg block-comment markers (<!-- wp:... -->) from post content for API output. */
+/** Strip Gutenberg block-comment markers (<!-- wp:... -->) and HTML tags from post content for API output. */
 function gadv_clean_content($text) {
-	return trim(preg_replace('/<!--.*?-->/s', '', (string) $text));
+	$no_comments = preg_replace('/<!--.*?-->/s', '', (string) $text);
+	return trim(wp_strip_all_tags($no_comments, true));
 }
 
 function gadv_hydrate_post($p, $viewer_id = null) {
