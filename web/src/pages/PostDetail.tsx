@@ -13,6 +13,11 @@ export default function PostDetail() {
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+
+  // Community-flavoured quick emoji strip for the comment box.
+  const EMOJIS = ['😀', '😂', '🥰', '😍', '😅', '😢', '😡', '😮', '🔥', '❤️', '🙏', '👏', '👍', '🎉', '💪', '🤝', '👑', '🪘', '🥁', '🇬🇭'];
+  const addEmoji = (e: string) => setText((t) => t + e);
 
   const load = useCallback(async () => {
     try {
@@ -55,7 +60,22 @@ export default function PostDetail() {
             )}
             <textarea placeholder="Write a comment…" value={text} onChange={(e) => setText(e.target.value)}
               style={{ minHeight: 60 }} />
-            <button className="primary small" style={{ marginTop: 8 }} onClick={send} disabled={!text.trim()}>Send</button>
+            <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
+              <button type="button" className="small ghost" onClick={() => setShowEmoji((v) => !v)}>
+                😀 Emoji
+              </button>
+              <button className="primary small" onClick={send} disabled={!text.trim()}>Send</button>
+            </div>
+            {showEmoji && (
+              <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
+                {EMOJIS.map((e) => (
+                  <button key={e} type="button" onClick={() => addEmoji(e)}
+                    style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

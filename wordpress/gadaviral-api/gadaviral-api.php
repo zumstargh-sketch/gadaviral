@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.11
+ * Version: 0.2.12
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -219,9 +219,15 @@ function gadv_user_upload_asset($request) {
 		$meta = wp_generate_attachment_metadata($attach_id, $filename);
 		wp_update_attachment_metadata($attach_id, $meta);
 		$url = wp_get_attachment_url($attach_id);
-		if ($kind === 'avatar') update_user_meta($user->ID, 'gadv_avatar', $url);
-		else if ($kind === 'cover') update_user_meta($user->ID, 'gadv_cover', $url);
-		return rest_ensure_response(['id' => $attach_id, 'url' => $url]);
+		// Display reads gadv_avatar_url (pre_get_avatar_data + gadv_user_public);
+		// store BOTH keys so older code paths keep working too.
+		if ($kind === 'avatar') {
+			update_user_meta($user->ID, 'gadv_avatar_url', $url);
+			update_user_meta($user->ID, 'gadv_avatar', $url);
+		} else if ($kind === 'cover') {
+			update_user_meta($user->ID, 'gadv_cover', $url);
+		}
+		return rest_ensure_response(['id' => $attach_id, 'url' => $url, 'field' => $kind]);
 	}
 	return new WP_Error('upload_failed', 'Failed to insert attachment', ['status' => 500]);
 }
@@ -2500,7 +2506,9 @@ add_action('rest_api_init', function () {
 		'methods' => 'POST',
 		'callback' => 'gadv_user_upload_asset',
 		'permission_callback' => 'gadv_require_jwt',
-		'args' => ['image' => ['required' => true]],
+		// NOTE: do NOT declare 'image' as a REST arg — WordPress validates args
+		// against JSON/query params only and would 400 every multipart upload
+		// before the handler reads $_FILES (the handler validates the file).
 	]);
 
 	register_rest_route('gadaviral/v1', '/users/me', [
