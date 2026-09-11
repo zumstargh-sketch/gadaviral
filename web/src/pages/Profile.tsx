@@ -30,9 +30,16 @@ export default function Profile() {
   const isMe = me?.id === u.id;
 
   const follow = async () => {
-    if (data.viewer.following) await api.del(`/users/${username}/follow`);
-    else await api.post(`/users/${username}/follow`, {});
-    load();
+    const wasFollowing = data.viewer.following;
+    // Optimistic update — the button reacts instantly, the request confirms.
+    data.viewer.following = !wasFollowing;
+    data.user.follower_count = Math.max(0, (Number(data.user.follower_count) || 0) + (wasFollowing ? -1 : 1));
+    setData({ ...data });
+    try {
+      if (wasFollowing) await api.del(`/users/${username}/follow`);
+      else await api.post(`/users/${username}/follow`, {});
+      load();
+    } catch (e: any) { setError(e.message); load(); }
   };
   const block = async () => {
     if (!confirm('Block this user? This removes mutual follows.')) return;

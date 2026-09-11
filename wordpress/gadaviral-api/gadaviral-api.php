@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.17
+ * Version: 0.2.18
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -330,6 +330,13 @@ function gadv_businesses_create($request) {
 // --- Additional auth helpers using DB tables ---
 function gadv_create_refresh_token_row($user_id, $expires_seconds = 2592000) {
 	global $wpdb;
+	// Single-device rule: minting a new session token revokes every previous
+	// one for this user — the most recent login/refresh wins, all other
+	// devices are signed out on their next request.
+	$wpdb->query($wpdb->prepare(
+		"UPDATE {$wpdb->prefix}gadv_refresh_tokens SET revoked_at = %s WHERE user_id = %d AND revoked_at IS NULL",
+		current_time('mysql', 1), $user_id
+	));
 	$token = bin2hex(random_bytes(32));
 	$hash = wp_hash_password($token);
 	$expires = date('Y-m-d H:i:s', time() + $expires_seconds);
@@ -423,6 +430,12 @@ function gadv_user_profile_payload($user_id) {
 		'avatar_url'   => (function () use ($user_id) {
 			$aid = intval(get_user_meta($user_id, 'gadv_avatar_id', true));
 			if ($aid && get_post($aid)) return gadv_media_url($aid);
+			// Seeded members wear the colorful initial-avatars bundled with the
+			// web app (web/public/avatars/<username>.svg, served at /app/avatars/).
+			if (!empty(get_user_meta($user_id, 'gadv_is_demo', true))) {
+				$u = get_userdata($user_id);
+				if ($u && get_user_by('login', $u->user_login)) return '/app/avatars/' . $u->user_login . '.svg';
+			}
 			$legacy = get_user_meta($user_id, 'gadv_avatar_url', true);
 			return $legacy ?: get_avatar_url($user_id);
 		})(),

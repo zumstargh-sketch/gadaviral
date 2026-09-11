@@ -20,6 +20,15 @@ function MemberCount() {
   );
 }
 
+/** ☰ hamburger — opens the full sidebar on phones. */
+function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <button className={'hamburger' + (open ? ' on' : '')} onClick={onClick} aria-label="Menu">
+      <span /><span /><span />
+    </button>
+  );
+}
+
 // Real-time (Socket.IO) is not available on the WordPress backend. `socket`
 // stays null, so the live listeners (Messages live-append, notification toast)
 // no-op gracefully instead of hammering the API with failing socket requests.
@@ -33,6 +42,8 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
 
   const navItems = [
     { to: '/feed', label: 'Feed', icon: '🏠' },
@@ -44,8 +55,10 @@ export default function Layout() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
-        <Link to="/feed" className="brand"><img className="brand-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />GADAVIRAL</Link>
+      <Hamburger open={menuOpen} onClick={() => setMenuOpen((v) => !v)} />
+      <div className={'backdrop' + (menuOpen ? ' show' : '')} onClick={closeMenu} />
+      <aside className={'sidebar' + (menuOpen ? ' open' : '')}>
+        <Link to="/feed" className="brand" onClick={closeMenu}><img className="brand-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />GADAVIRAL</Link>
         {[...navItems,
           { to: '/groups', label: 'Groups', icon: '👥' },
           { to: '/events', label: 'Events', icon: '📅' },
@@ -53,7 +66,7 @@ export default function Layout() {
           { to: '/settings', label: 'Settings', icon: '⚙️' },
           ...(['ADMIN', 'SUPER_ADMIN', 'MODERATOR'].includes(user?.role) ? [{ to: '/admin', label: 'Admin', icon: '🛡️' }] : []),
         ].map((item) => (
-          <NavLink key={item.to} to={item.to} className={({ isActive }) => `navlink${isActive ? ' active' : ''}`}>
+          <NavLink key={item.to} to={item.to} onClick={closeMenu} className={({ isActive }) => `navlink${isActive ? ' active' : ''}`}>
             <span>{item.icon}</span> {item.label}
           </NavLink>
         ))}
