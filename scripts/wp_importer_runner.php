@@ -4,6 +4,7 @@
  * Usage (CLI): wp eval-file scripts/wp_importer_runner.php -- --source exports
  * The script reads JSON files from the given directory and imports users/posts/comments etc.
  * It writes original Pg ids into usermeta/postmeta with key 'gadv_pg_id' to support re-runs.
+ * Idempotent: re-running skips already-imported rows.
  */
 
 if (php_sapi_name() === 'cli') {
@@ -16,16 +17,38 @@ if (php_sapi_name() === 'cli') {
 	$source = $_GET['source'];
 }
 
+/**
+ * Demo import with resume support for shared hosting time limits.
+ * Stage = which JSON file to process next. Each stage is idempotent
+ * (re-running skips already-imported rows via gadv_pg_id).
+ * Pass ?stage=users|posts|comments|reactions|follows (default: users).
+ * The admin UI auto-advances through the stages until done.
+ */
+$gadv_import_stage = isset($_GET['stage']) ? sanitize_key($_GET['stage']) : 'users';
+$gadv_import_limits = 20; // seconds per stage run before stopping for a resume
+$gadv_import_started = time();
+
+function gadv_import_time_left() {
+	global $gadv_import_limits, $gadv_import_started;
+	return $gadv_import_started + $gadv_import_limits > time();
+}
+
 $dir = __DIR__ . '/' . $source;
 if (!is_dir($dir)) die("Source dir not found: $dir\n");
 
 function read_json($file) { return json_decode(file_get_contents($file), true); }
 
 $report = [];
+// Stage gating: when a stage is requested via the URL, only that stage runs
+// (each stage is idempotent; the admin UI auto-advances). Without a stage,
+// everything runs like before (CLI mode).
+$gadv_only = ($gadv_import_stage && $gadv_import_stage !== 'all')
+	? array_flip(array_map('sanitize_key', (array) explode(',', $gadv_import_stage)))
+	: null;
 
 // Users import
 $usersFile = $dir . '/users.json';
-if (file_exists($usersFile)) {
+if (file_exists($usersFile) && (!$gadv_only || isset($gadv_only['users']))) {
 	$users = read_json($usersFile);
 	$report['users'] = ['source' => count($users), 'imported' => 0, 'skipped' => 0, 'failed' => 0, 'duplicates' => 0, 'errors' => []];
 	foreach ($users as $u) {
@@ -58,7 +81,7 @@ if (file_exists($usersFile)) {
 
 // Posts import (basic)
 $postsFile = $dir . '/posts.json';
-if (file_exists($postsFile)) {
+if (file_exists($postsFile) && (!$gadv_only || isset($gadv_only['posts']))) {
 	$posts = read_json($postsFile);
 	$report['posts'] = ['source' => count($posts), 'imported' => 0, 'skipped' => 0, 'failed' => 0, 'duplicates' => 0, 'errors' => []];
 	foreach ($posts as $p) {
@@ -98,7 +121,7 @@ if (file_exists($postsFile)) {
 
 // Comments import
 $commentsFile = $dir . '/comments.json';
-if (file_exists($commentsFile)) {
+if (file_exists($commentsFile) && (!$gadv_only || isset($gadv_only['comments']))) {
 	$comments = read_json($commentsFile);
 	$report['comments'] = ['source' => count($comments), 'imported' => 0, 'skipped' => 0, 'failed' => 0, 'duplicates' => 0, 'errors' => []];
 	foreach ($comments as $c) {
@@ -131,7 +154,7 @@ else echo json_encode($report);
 
 // Reactions
 $reactionsFile = $dir . '/reactions.json';
-if (file_exists($reactionsFile)) {
+if (file_exists($reactionsFile) && (!$gadv_only || isset($gadv_only['reactions']))) {
 	$reactions = read_json($reactionsFile);
 	$report['reactions'] = ['source'=>count($reactions),'imported'=>0,'skipped'=>0,'failed'=>0,'errors'=>[]];
 	global $wpdb;
@@ -153,7 +176,7 @@ if (file_exists($reactionsFile)) {
 
 // Follows
 $followsFile = $dir . '/follows.json';
-if (file_exists($followsFile)) {
+if (file_exists($followsFile) && (!$gadv_only || isset($gadv_only['follows']))) {
 	$follows = read_json($followsFile);
 	$report['follows'] = ['source'=>count($follows),'imported'=>0,'skipped'=>0,'failed'=>0,'errors'=>[]];
 	global $wpdb;

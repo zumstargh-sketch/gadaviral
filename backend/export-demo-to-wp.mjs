@@ -22,10 +22,18 @@ const write = (name, rows) => {
 };
 
 // Users (demo only) — runner expects {id, username, email, full_name, is_demo}
+// Extra named members requested by the community team are merged in so they
+// survive re-exports (fixed UUIDs; never re-derive them).
+const extraUsersFile = path.join(root, 'backend/demo-extra-users.json');
+const extraUsers = fs.existsSync(extraUsersFile) ? JSON.parse(fs.readFileSync(extraUsersFile, 'utf8')) : [];
 const users = (await c.query(`
   SELECT id, username, email, full_name, true AS is_demo
   FROM users WHERE is_demo = true AND deleted_at IS NULL ORDER BY created_at
 `)).rows;
+const seenUsernames = new Set(users.map((u) => u.username));
+for (const extra of extraUsers) {
+  if (!seenUsernames.has(extra.username)) users.push(extra);
+}
 write('users.json', users);
 
 // Posts (demo only) — {id, content, author_id, type, created_at}

@@ -1,6 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.js';
+import { apiUrl } from '../api.js';
+
+/** Live profile counter (including seeded community members) from /stats. */
+function MemberCount() {
+  const [stats, setStats] = useState<{ totalProfiles: number; demoProfiles: number; realProfiles: number } | null>(null);
+  useEffect(() => {
+    fetch(apiUrl('stats'))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => { if (s && s.totalProfiles) setStats(s); })
+      .catch(() => { /* decorative */ });
+  }, []);
+  if (!stats) return null;
+  return (
+    <p style={{ marginTop: 8 }}>
+      🧑‍🤝‍🧑 <b>{stats.totalProfiles}</b> members — {stats.realProfiles} real, {stats.demoProfiles} seeded
+    </p>
+  );
+}
 
 // Real-time (Socket.IO) is not available on the WordPress backend. `socket`
 // stays null, so the live listeners (Messages live-append, notification toast)
@@ -60,6 +78,7 @@ export default function Layout() {
         <div className="card muted">
           <b style={{ color: 'var(--text)' }}>Dangme & Ga Online Social Community</b>
           <p>Connect · Share · Build Together</p>
+          <MemberCount />
         </div>
       </aside>
 

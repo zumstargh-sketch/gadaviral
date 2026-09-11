@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.10
+ * Version: 0.2.11
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -277,6 +277,15 @@ function gadv_verify_refresh_token($token) {
 		if (wp_check_password($token, $r->token_hash)) return $r;
 	}
 	return null;
+}
+
+/** Single-device sessions: revoke every refresh token of a user (all devices). */
+function gadv_revoke_other_refresh_tokens($user_id) {
+	global $wpdb;
+	$wpdb->query($wpdb->prepare(
+		"UPDATE {$wpdb->prefix}gadv_refresh_tokens SET revoked_at = %s WHERE user_id = %d AND revoked_at IS NULL",
+		current_time('mysql', 1), $user_id
+	));
 }
 
 // --- Auth endpoints implementations ---
@@ -946,13 +955,16 @@ add_action('admin_post_gadv_smtp_test', function () {
 	exit;
 });
 
-// One-click demo data import: runs the bundled idempotent importer against
-// the exports folder uploaded to wp-content/plugins/gadaviral-api/exports/.
+// One-click demo data import: runs the bundled idempotent importer stage by
+// stage (users → posts → comments → reactions → follows), auto-advancing via
+// repeated admin-post requests so shared-hosting time limits never abort it.
 add_action('admin_post_gadv_demo_import', function () {
 	if (!current_user_can('manage_options')) wp_die('Forbidden');
 	check_admin_referer('gadv_demo_import');
 	$runner = __DIR__ . '/wp_importer_runner.php';
 	$dir = __DIR__ . '/exports';
+	$stages = ['users', 'posts', 'comments', 'reactions', 'follows'];
+	$stage = isset($_GET['stage']) && in_array($_GET['stage'], $stages, true) ? $_GET['stage'] : $stages[0];
 	$result = ['ok' => false, 'msg' => ''];
 	if (!file_exists($dir . '/users.json') && !file_exists($dir . '/posts.json')) {
 		$result['msg'] = 'No exports found — upload the exports folder (users.json, posts.json, comments.json, reactions.json, follows.json) to wp-content/plugins/gadaviral-api/exports/ first.';
@@ -960,18 +972,28 @@ add_action('admin_post_gadv_demo_import', function () {
 		$result['msg'] = 'Importer file missing (wp_importer_runner.php).';
 	} else {
 		$source = 'exports'; // consumed by the runner (admin-included mode)
+		$_GET['stage'] = $stage;
 		ob_start();
 		try {
 			include $runner;
-			$result['msg'] = (string) ob_get_clean();
-			$result['ok'] = true;
+			$report = json_decode((string) ob_get_clean(), true);
+			if (is_array($report) && isset($report[$stage])) {
+				$r = $report[$stage];
+				$result['msg'] = ucfirst($stage) . ": source={$r['source']} imported={$r['imported']} skipped={$r['skipped']} failed={$r['failed']}" . (!empty($r['duplicates']) ? " duplicates={$r['duplicates']}" : '');
+				$result['ok'] = $r['failed'] === 0;
+			} else {
+				$result['msg'] = ucfirst($stage) . ': file missing in exports folder — stage skipped.';
+			}
 		} catch (Throwable $e) {
 			ob_end_clean();
-			$result['msg'] = 'Import stopped: ' . get_class($e) . ': ' . $e->getMessage() . ' — the import is idempotent; click again to continue where it left off.';
+			$result['msg'] = ucfirst($stage) . " stopped: " . get_class($e) . ': ' . $e->getMessage() . ' — idempotent, click Import again to continue.';
 		}
 	}
+	$idx = array_search($stage, $stages, true);
+	$next = ($idx !== false && $idx < count($stages) - 1) ? $stages[$idx + 1] : null;
+	$result['next'] = $next;
 	set_transient('gadv_demo_import', $result, 30 * MINUTE_IN_SECONDS);
-	gadv_mail_log('DEMO-IMPORT result=' . ($result['ok'] ? 'DONE' : 'MISSING') . ' ' . substr($result['msg'], 0, 200));
+	gadv_mail_log('DEMO-IMPORT stage=' . $stage . ' result=' . ($result['ok'] ? 'DONE' : 'PARTIAL') . ' ' . $result['msg']);
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
 	exit;
 });
@@ -2365,6 +2387,13 @@ add_action('rest_api_init', function () {
 		]);
 	}
 
+	// App statistics: total profiles on the app (including seeded members).
+	register_rest_route('gadaviral/v1', '/stats', [
+		'methods' => 'GET',
+		'callback' => 'gadv_app_stats',
+		'permission_callback' => '__return_true',
+	]);
+
 	register_rest_route('gadaviral/v1', '/auth/login', [
 		'methods' => 'POST',
 		'callback' => 'gadv_auth_login',
@@ -2562,6 +2591,26 @@ function gadv_plugin_version() {
 	return $v;
 }
 
+/** App profile statistics (including demo members) for the UI counter. */
+function gadv_app_stats($request) {
+	$tot = get_transient('gadv_stats_total');
+	$demo = get_transient('gadv_stats_demo');
+	if ($tot === false || $demo === false) {
+		$all = count_users();
+		$tot = intval($all['total_users']);
+		$demo = intval(count(get_users(['meta_key' => 'gadv_is_demo', 'meta_value' => '1', 'fields' => 'ID', 'number' => 5000])));
+		set_transient('gadv_stats_total', $tot, 10 * MINUTE_IN_SECONDS);
+		set_transient('gadv_stats_demo', $demo, 10 * MINUTE_IN_SECONDS);
+	}
+	$real = max(0, $tot - $demo);
+	return rest_ensure_response([
+		'totalProfiles' => $tot,
+		'demoProfiles' => $demo,
+		'realProfiles' => $real,
+		'message' => $tot . ' members — ' . $real . ' real, ' . $demo . ' seeded community',
+	]);
+}
+
 function gadv_health($request) {
 	return rest_ensure_response(['ok' => true, 'source' => 'wordpress-gadaviral-api', 'version' => gadv_plugin_version()]);
 }
@@ -2583,6 +2632,9 @@ function gadv_auth_login($request) {
 	if (is_wp_error($user)) {
 		return new WP_Error('auth_failed', $user->get_error_message(), ['status' => 401]);
 	}
+	// Single-device rule: a new login revokes all previous refresh tokens, so
+	// the account is only usable on the device that logged in most recently.
+	gadv_revoke_other_refresh_tokens($user->ID);
 	$user_obj = get_userdata($user->ID);
 	$access = gadv_jwt_encode(['sub' => $user->ID, 'email' => $user->user_email], 900);
 	// Create a persisted refresh token and return plain token to client
