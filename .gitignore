@@ -10,6 +10,10 @@ backend/dist/
 web/dist.zip
 wordpress/gadaviral-api/gadaviral-api.zip
 
+# Generated demo-data exports (regenerate: cd backend && node export-demo-to-wp.mjs)
+scripts/exports/
+backend/diag-*
+
 
 # Environment & secrets
 .env

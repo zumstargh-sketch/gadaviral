@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.8
+ * Version: 0.2.9
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -901,6 +901,19 @@ function gadv_google_settings_page() {
 				<?php endif; ?>
 			</div>
 		<?php endif; endif; ?>
+		<h2>Demo community (116 seeded members + 150 posts)</h2>
+		<p>Restores the seeded community from the previous backend. Steps: upload the <code>exports</code> folder (users.json, posts.json, comments.json, reactions.json, follows.json) into <code>wp-content/plugins/gadaviral-api/exports/</code> via cPanel File Manager, then click below. The import is idempotent — if it stops partway, clicking again continues where it left off.</p>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+			<input type="hidden" name="action" value="gadv_demo_import" />
+			<?php wp_nonce_field('gadv_demo_import'); ?>
+			<?php submit_button('Import demo data', 'secondary', 'submit', false); ?>
+		</form>
+		<?php if (isset($_GET['demo-import'])): $di = get_transient('gadv_demo_import'); if ($di): ?>
+			<div class="notice notice-info is-dismissible" style="max-width:900px">
+				<p><strong>Demo import result:</strong></p>
+				<pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-width:900px;overflow:auto"><?php echo esc_html($di['msg']); ?></pre>
+			</div>
+		<?php endif; endif; ?>
 		<?php
 		$upload = wp_upload_dir();
 		$log_file = trailingslashit($upload['basedir']) . 'gadv-mail-log.txt';
@@ -925,6 +938,36 @@ add_action('admin_post_gadv_smtp_test', function () {
 	$transport = gadv_mail_transport();
 	$sent = gadv_safe_mail($to, 'GADAVIRAL SMTP test', "If you can read this, outgoing email works. ✅\n\nTransport: " . $transport, 'TEST');
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'smtp-test' => 1, 'ok' => $sent ? 1 : 0, 'err' => rawurlencode($err ?? '')], admin_url('options-general.php')));
+	exit;
+});
+
+// One-click demo data import: runs the bundled idempotent importer against
+// the exports folder uploaded to wp-content/plugins/gadaviral-api/exports/.
+add_action('admin_post_gadv_demo_import', function () {
+	if (!current_user_can('manage_options')) wp_die('Forbidden');
+	check_admin_referer('gadv_demo_import');
+	$runner = __DIR__ . '/wp_importer_runner.php';
+	$dir = __DIR__ . '/exports';
+	$result = ['ok' => false, 'msg' => ''];
+	if (!file_exists($dir . '/users.json') && !file_exists($dir . '/posts.json')) {
+		$result['msg'] = 'No exports found — upload the exports folder (users.json, posts.json, comments.json, reactions.json, follows.json) to wp-content/plugins/gadaviral-api/exports/ first.';
+	} elseif (!file_exists($runner)) {
+		$result['msg'] = 'Importer file missing (wp_importer_runner.php).';
+	} else {
+		$source = 'exports'; // consumed by the runner (admin-included mode)
+		ob_start();
+		try {
+			include $runner;
+			$result['msg'] = (string) ob_get_clean();
+			$result['ok'] = true;
+		} catch (Throwable $e) {
+			ob_end_clean();
+			$result['msg'] = 'Import stopped: ' . get_class($e) . ': ' . $e->getMessage() . ' — the import is idempotent; click again to continue where it left off.';
+		}
+	}
+	set_transient('gadv_demo_import', $result, 30 * MINUTE_IN_SECONDS);
+	gadv_mail_log('DEMO-IMPORT result=' . ($result['ok'] ? 'DONE' : 'MISSING') . ' ' . substr($result['msg'], 0, 200));
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
 	exit;
 });
 
