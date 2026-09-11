@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.16
+ * Version: 0.2.17
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -211,42 +211,87 @@ add_filter('upload_dir', function ($dirs) {
 	return $dirs;
 });
 
-function gadv_user_upload_asset($request) {
-	$kind = sanitize_text_field($request->get_param('kind'));
-	$user = gadv_get_request_user($request);
-	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
-	// WordPress handles file uploads via $_FILES; use WP functions
-	if (empty($_FILES) || !isset($_FILES['image'])) return new WP_Error('invalid', 'Image required', ['status' => 400]);
+/** Canonical API URL for an uploaded attachment — served through REST, because
+ *  direct wp-content/uploads URLs 404 behind this host's .htaccess hardening. */
+function gadv_media_url($attach_id) {
+	return rest_url('gadaviral/v1/media/attachment/' . intval($attach_id));
+}
+
+// GET /media/attachment/{id} — streams an uploaded image (avatars, covers,
+// comment photos). Public: avatars are public content. Exits before REST
+// converts the response to JSON.
+add_action('rest_api_init', function () {
+	register_rest_route('gadaviral/v1', '/media/attachment/(?P<id>\\d+)', [
+		'methods' => 'GET',
+		'callback' => 'gadv_media_serve',
+		'permission_callback' => '__return_true',
+	]);
+});
+
+function gadv_media_serve($request) {
+	$attach_id = intval($request->get_param('id'));
+	$post = get_post($attach_id);
+	if (!$post || $post->post_type !== 'attachment') { status_header(404); nocache_headers(); exit; }
+	$file = get_attached_file($attach_id);
+	if (!$file || !file_exists($file)) { status_header(404); nocache_headers(); exit; }
+	header('Content-Type: ' . ($post->post_mime_type ?: 'application/octet-stream'));
+	header('Content-Length: ' . filesize($file));
+	header('Cache-Control: public, max-age=31536000, immutable');
+	if (ob_get_level()) { ob_end_clean(); }
+	readfile($file);
+	exit;
+}
+
+/** Validate + store an uploaded image ($_FILES[$field]) as an attachment.
+ *  Returns ['id' => attachment_id, 'url' => served URL] or WP_Error. */
+function gadv_store_uploaded_image($field = 'image') {
+	if (empty($_FILES) || !isset($_FILES[$field])) return null;
 	require_once(ABSPATH . 'wp-admin/includes/file.php');
 	require_once(ABSPATH . 'wp-admin/includes/image.php');
-	$file = $_FILES['image'];
+	$file = $_FILES[$field];
+	if ($file['error'] !== UPLOAD_ERR_OK) return new WP_Error('upload_failed', 'Upload error code ' . $file['error'], ['status' => 500]);
+	if ($file['size'] > 8 * 1024 * 1024) return new WP_Error('too_large', 'Image must be under 8 MB', ['status' => 400]);
 	$overrides = ['test_form' => false];
 	$move = wp_handle_upload($file, $overrides);
 	if (isset($move['error'])) return new WP_Error('upload_failed', $move['error'], ['status' => 500]);
 	$filename = $move['file'];
 	$filetype = wp_check_filetype(basename($filename), null);
+	if (empty($filetype['type']) || strpos($filetype['type'], 'image/') !== 0) {
+		@unlink($filename);
+		return new WP_Error('invalid', 'Only image files are allowed', ['status' => 400]);
+	}
 	$attachment = [
 		'post_mime_type' => $filetype['type'],
 		'post_title' => sanitize_text_field(basename($filename)),
 		'post_content' => '',
-		'post_status' => 'inherit'
+		'post_status' => 'inherit',
 	];
 	$attach_id = wp_insert_attachment($attachment, $filename);
-	if (!is_wp_error($attach_id)) {
-		$meta = wp_generate_attachment_metadata($attach_id, $filename);
-		wp_update_attachment_metadata($attach_id, $meta);
-		$url = wp_get_attachment_url($attach_id);
-		// Display reads gadv_avatar_url (pre_get_avatar_data + gadv_user_public);
-		// store BOTH keys so older code paths keep working too.
-		if ($kind === 'avatar') {
-			update_user_meta($user->ID, 'gadv_avatar_url', $url);
-			update_user_meta($user->ID, 'gadv_avatar', $url);
-		} else if ($kind === 'cover') {
-			update_user_meta($user->ID, 'gadv_cover', $url);
-		}
-		return rest_ensure_response(['id' => $attach_id, 'url' => $url, 'field' => $kind, 'file' => wp_normalize_path($filename)]);
+	if (is_wp_error($attach_id)) return $attach_id;
+	$meta = wp_generate_attachment_metadata($attach_id, $filename);
+	wp_update_attachment_metadata($attach_id, $meta);
+	return ['id' => intval($attach_id), 'url' => gadv_media_url($attach_id)];
+}
+
+function gadv_user_upload_asset($request) {
+	$kind = sanitize_text_field($request->get_param('kind'));
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$stored = gadv_store_uploaded_image('image');
+	if ($stored === null) return new WP_Error('invalid', 'Image required', ['status' => 400]);
+	if (is_wp_error($stored)) return $stored;
+	$url = $stored['url'];
+	// Display resolves through the attachment ID (media endpoint) first, and
+	// the URL keys stay updated for any legacy code path.
+	if ($kind === 'avatar') {
+		update_user_meta($user->ID, 'gadv_avatar_id', $stored['id']);
+		update_user_meta($user->ID, 'gadv_avatar_url', $url);
+		update_user_meta($user->ID, 'gadv_avatar', $url);
+	} else if ($kind === 'cover') {
+		update_user_meta($user->ID, 'gadv_cover_id', $stored['id']);
+		update_user_meta($user->ID, 'gadv_cover', $url);
 	}
-	return new WP_Error('upload_failed', 'Failed to insert attachment', ['status' => 500]);
+	return rest_ensure_response(['id' => $stored['id'], 'url' => $url, 'field' => $kind, 'file' => wp_normalize_path($move['file'] ?? '')]);
 }
 
 // --- Businesses endpoints ---
@@ -375,8 +420,17 @@ function gadv_user_profile_payload($user_id) {
 		'education'    => $val('gadv_education'),
 		'interests'    => $arr('gadv_interests'),
 		'languages'    => $arr('gadv_languages'),
-		'avatar_url'   => get_avatar_url($user_id),
-		'cover_url'    => $val('gadv_cover'),
+		'avatar_url'   => (function () use ($user_id) {
+			$aid = intval(get_user_meta($user_id, 'gadv_avatar_id', true));
+			if ($aid && get_post($aid)) return gadv_media_url($aid);
+			$legacy = get_user_meta($user_id, 'gadv_avatar_url', true);
+			return $legacy ?: get_avatar_url($user_id);
+		})(),
+		'cover_url'    => (function () use ($user_id) {
+			$cid = intval(get_user_meta($user_id, 'gadv_cover_id', true));
+			if ($cid && get_post($cid)) return gadv_media_url($cid);
+			return get_user_meta($user_id, 'gadv_cover', true);
+		})(),
 	];
 }
 
@@ -758,6 +812,10 @@ add_filter('pre_get_avatar_data', function ($args, $id_or_email) {
 	elseif (is_object($id_or_email) && isset($id_or_email->user_id)) $user_id = intval($id_or_email->user_id); // WP_Comment
 	elseif (is_string($id_or_email)) { $u = get_user_by('email', $id_or_email); if ($u) $user_id = $u->ID; }
 	if ($user_id) {
+		// Prefer the uploaded attachment (served via the media endpoint);
+		// fall back to a direct URL, then to the default avatar.
+		$aid = intval(get_user_meta($user_id, 'gadv_avatar_id', true));
+		if ($aid && get_post($aid)) { $args['url'] = gadv_media_url($aid); return $args; }
 		$url = get_user_meta($user_id, 'gadv_avatar_url', true);
 		if ($url) { $args['url'] = $url; return $args; }
 	}
@@ -1278,6 +1336,7 @@ function gadv_comment_replies($request) {
 			'id' => $r->comment_ID,
 			'author_id' => $r->user_id,
 			'content' => $r->comment_content,
+			'image_url' => get_comment_meta($r->comment_ID, 'gadv_image_url', true) ?: null,
 			'created_at' => $r->comment_date_gmt,
 			'author_username' => $author ? $author->user_login : null,
 			'author_name' => $author ? ($author->display_name ?: $author->user_login) : null,
@@ -1807,6 +1866,7 @@ function gadv_comments_list($request) {
 			'author_username' => $author ? $author->user_login : null,
 			'author_name' => $author ? ($author->display_name ?: $author->user_login) : null,
 			'author_avatar' => $author ? get_avatar_url($author->ID) : null,
+			'image_url' => get_comment_meta($c->comment_ID, 'gadv_image_url', true) ?: null,
 			'reply_count' => count(get_comments(['post_id' => $post_id, 'status' => 'approve', 'parent' => $c->comment_ID])),
 		];
 	}
@@ -1816,21 +1876,36 @@ function gadv_comments_list($request) {
 
 function gadv_comments_create($request) {
 	$post_id = intval($request->get_param('id'));
-	$body = json_decode($request->get_body(), true);
 	$user = gadv_get_request_user($request);
 	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
-	$content = isset($body['content']) ? wp_kses_post($body['content']) : '';
-	if (empty($content)) return new WP_Error('invalid', 'Content required', ['status' => 400]);
+	// Body may be JSON (plain text comment) or multipart (comment + photo).
+	$body = json_decode((string) $request->get_body(), true);
+	if (!is_array($body)) $body = [];
+	$content = isset($body['content']) ? wp_kses_post($body['content']) : (isset($_POST['content']) ? wp_kses_post($_POST['content']) : '');
+	$parent = isset($body['parent_comment_id']) ? intval($body['parent_comment_id'])
+		: (isset($_POST['parent_comment_id']) ? intval($_POST['parent_comment_id']) : (isset($body['parentCommentId']) ? intval($body['parentCommentId']) : 0));
+	// Optional attached photo (multipart field 'image').
+	$stored = gadv_store_uploaded_image('image');
+	if (is_wp_error($stored)) return $stored;
+	if (empty(trim(wp_strip_all_tags((string) $content))) && !$stored) {
+		return new WP_Error('invalid', 'Comment text or photo required', ['status' => 400]);
+	}
 	$commentdata = [
 		'comment_post_ID' => $post_id,
 		'comment_content' => $content,
 		'user_id' => $user->ID,
-		'comment_parent' => isset($body['parent_comment_id']) ? intval($body['parent_comment_id']) : 0,
+		'comment_parent' => $parent,
 		'comment_approved' => 1,
 	];
 	$cid = wp_insert_comment($commentdata);
 	if (!$cid) return new WP_Error('failed', 'Could not create comment', ['status' => 500]);
-	return rest_ensure_response(['id' => $cid]);
+	$image_url = null;
+	if ($stored) {
+		update_comment_meta($cid, 'gadv_image_id', $stored['id']);
+		$image_url = $stored['url'];
+		update_comment_meta($cid, 'gadv_image_url', $image_url);
+	}
+	return rest_ensure_response(['id' => $cid, 'image_url' => $image_url]);
 }
 
 // --- Follow endpoints ---
@@ -2749,7 +2824,7 @@ function gadv_app_stats($request) {
 		'totalProfiles' => $tot,
 		'demoProfiles' => $demo,
 		'realProfiles' => $real,
-		'message' => $tot . ' members — ' . $real . ' real, ' . $demo . ' seeded community',
+		'message' => $tot . ' members',
 	]);
 }
 
@@ -2870,8 +2945,15 @@ function gadv_resolve_user($param) {
 
 function gadv_user_by_username($request) {
 	$username = $request->get_param('username');
-	$user = get_user_by('login', $username);
-	if (!$user) $user = get_userdata(intval($username));
+	if ($username === 'me') {
+		// /users/me is captured by this wildcard route — resolve to the JWT user.
+		$me = gadv_get_request_user($request);
+		if (!$me) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+		$user = $me;
+	} else {
+		$user = get_user_by('login', $username);
+		if (!$user) $user = get_userdata(intval($username));
+	}
 	if (!$user) return new WP_Error('not_found', 'User not found', ['status' => 404]);
 	if (!empty(get_user_meta($user->ID, 'gadv_deactivated', true))) {
 		return new WP_Error('not_found', 'User not found', ['status' => 404]);

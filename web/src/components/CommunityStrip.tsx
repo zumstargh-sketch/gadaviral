@@ -51,7 +51,7 @@ export default function CommunityStrip() {
       )}
       <div className="community-caption">
         {stats ? (
-          <><b>{stats.totalProfiles} profiles</b> on Gadaviral — {stats.realProfiles} real, {stats.demoProfiles} seeded</>
+          <><b>{stats.totalProfiles} members</b> on Gadaviral — join them</>
         ) : (
           <><b>{data?.total ?? 0} members</b> already sharing — join them</>
         )}

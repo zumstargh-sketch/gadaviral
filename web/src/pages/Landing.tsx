@@ -6,7 +6,7 @@ export default function Landing() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 24, textAlign: 'center' }}>
       <img className="landing-logo" src={`${import.meta.env.BASE_URL}icons/logo-512.png`} alt="GADAVIRAL logo" />
       <div style={{ fontSize: 64, fontWeight: 900, color: 'var(--gold)', letterSpacing: 2, marginTop: 8 }}>
-        GADA<span style={{ color: '#fff' }}>VIRAL</span>
+        GADAVIRAL
       </div>
       <div className="muted" style={{ letterSpacing: 4, textTransform: 'uppercase', fontSize: 12 }}>
         Dangme &amp; Ga Online Social Community

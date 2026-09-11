@@ -30,7 +30,7 @@ export default function Login() {
       <div className="card">
         <img className="auth-logo" src={`${import.meta.env.BASE_URL}icons/logo-512.png`} alt="GADAVIRAL logo" />
         <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 18 }}>
-          GADA<span style={{ color: '#fff' }}>VIRAL</span>
+          GADAVIRAL
         </div>
         <form onSubmit={submit}>
           <input placeholder="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

@@ -13,6 +13,7 @@ export default function PostDetail() {
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [imgFile, setImgFile] = useState<File | null>(null);
 
   // Community-flavoured quick emoji strip for the comment box (always visible).
   const EMOJIS = ['😀', '😂', '🥰', '😍', '😅', '😢', '😡', '😮', '🔥', '❤️', '🙏', '👏', '👍', '🎉', '💪', '🤝', '👑', '🪘', '🥁', '🇬🇭'];
@@ -30,10 +31,19 @@ export default function PostDetail() {
   useEffect(() => { load(); }, [id]);
 
   const send = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() && !imgFile) return;
     try {
-      await api.post(`/posts/${id}/comments`, { content: text, parentCommentId: replyTo ?? undefined });
-      setText(''); setReplyTo(null);
+      if (imgFile) {
+        // Multipart path: comment text + optional attached image.
+        const fd = new FormData();
+        fd.append('content', text);
+        if (replyTo) fd.append('parent_comment_id', replyTo);
+        fd.append('image', imgFile);
+        await api.upload(`/posts/${id}/comments`, fd);
+      } else {
+        await api.post(`/posts/${id}/comments`, { content: text, parentCommentId: replyTo ?? undefined });
+      }
+      setText(''); setImgFile(null); setReplyTo(null);
       load();
     } catch (e: any) { setError(e.message); }
   };
@@ -57,8 +67,14 @@ export default function PostDetail() {
             {replyTo && (
               <div className="muted">replying · <button className="small ghost" onClick={() => setReplyTo(null)}>cancel</button></div>
             )}
-            <textarea placeholder="Write a comment…" value={text} onChange={(e) => setText(e.target.value)}
+            <textarea placeholder="Write a comment… (text optional when a photo is attached)" value={text} onChange={(e) => setText(e.target.value)}
               style={{ minHeight: 60 }} />
+            {imgFile && (
+              <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
+                <span className="muted" style={{ fontSize: 13 }}>📎 {imgFile.name}</span>
+                <button type="button" className="small ghost" onClick={() => setImgFile(null)}>remove</button>
+              </div>
+            )}
             <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
               {EMOJIS.map((e) => (
                 <button key={e} type="button" onClick={() => addEmoji(e)}
@@ -69,7 +85,12 @@ export default function PostDetail() {
               ))}
             </div>
             <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'center' }}>
-              <button className="primary small" onClick={send} disabled={!text.trim()}>Send</button>
+              <label className="small ghost" style={{ cursor: 'pointer', padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6 }}>
+                📷 Photo
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={(e) => setImgFile(e.target.files?.[0] ?? null)} />
+              </label>
+              <button className="primary small" onClick={send} disabled={!text.trim() && !imgFile}>Send</button>
             </div>
           </div>
         </div>
@@ -82,6 +103,7 @@ export default function PostDetail() {
                 <div style={{ flex: 1 }}>
                   <Link to={`/u/${c.author_username}`} style={{ fontWeight: 700, color: 'var(--text)' }}>{c.author_name}</Link>
                   <div>{c.content}</div>
+                  {c.image_url && <img src={c.image_url} alt="" style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 8, marginTop: 6 }} />}
                   <div className="row muted" style={{ gap: 12 }}>
                     <span>{new Date(c.created_at).toLocaleString()}</span>
                     <button className="small ghost" onClick={() => setReplyTo(c.id)}>Reply</button>

@@ -5,7 +5,7 @@ import { apiUrl } from '../api.js';
 
 /** Live profile counter (including seeded community members) from /stats. */
 function MemberCount() {
-  const [stats, setStats] = useState<{ totalProfiles: number; demoProfiles: number; realProfiles: number } | null>(null);
+  const [stats, setStats] = useState<{ totalProfiles: number } | null>(null);
   useEffect(() => {
     fetch(apiUrl('stats'))
       .then((r) => (r.ok ? r.json() : null))
@@ -15,7 +15,7 @@ function MemberCount() {
   if (!stats) return null;
   return (
     <p style={{ marginTop: 8 }}>
-      🧑‍🤝‍🧑 <b>{stats.totalProfiles}</b> members — {stats.realProfiles} real, {stats.demoProfiles} seeded
+      🧑‍🤝‍🧑 <b>{stats.totalProfiles}</b> members
     </p>
   );
 }
@@ -45,7 +45,7 @@ export default function Layout() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <Link to="/feed" className="brand"><img className="brand-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />GADA<span>VIRAL</span></Link>
+        <Link to="/feed" className="brand"><img className="brand-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />GADAVIRAL</Link>
         {[...navItems,
           { to: '/groups', label: 'Groups', icon: '👥' },
           { to: '/events', label: 'Events', icon: '📅' },

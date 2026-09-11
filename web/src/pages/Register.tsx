@@ -39,7 +39,7 @@ export default function Register() {
       <div className="card">
         <img className="auth-logo" src={`${import.meta.env.BASE_URL}icons/logo-512.png`} alt="GADAVIRAL logo" />
         <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 14 }}>
-          GADA<span style={{ color: '#fff' }}>VIRAL</span>
+          GADAVIRAL
         </div>
         <form onSubmit={submit}>
           <input placeholder="Full name (e.g. Nii Tetteh Quaye)" value={form.fullName}
