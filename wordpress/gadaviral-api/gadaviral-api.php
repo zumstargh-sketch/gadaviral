@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.13
+ * Version: 0.2.14
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -862,6 +862,29 @@ function gadv_google_settings_page() {
 	?>
 	<div class="wrap">
 		<h1>GADAVIRAL — Google Sign-in &amp; Email (SMTP)</h1>
+		<div style="border:2px solid #F2A900;border-radius:8px;padding:12px 16px;margin:16px 0;background:#fffbe8">
+		<h2>Demo community (117 seeded members · 150 posts · comments · reactions · follows · groups · businesses)</h2>
+		<p><strong>Step 1 — upload the exports ZIP</strong> (found at <code>repo\scripts\exports.zip</code>). No cPanel needed.</p>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+			<input type="hidden" name="action" value="gadv_demo_zip_upload" />
+			<?php wp_nonce_field('gadv_demo_zip_upload'); ?>
+			<input type="file" name="demozip" accept=".zip" required />
+			<?php submit_button('Upload exports.zip', 'secondary', 'submit', false); ?>
+		</form>
+		<p><strong>Step 2 — click Import once</strong>: every stage runs automatically (one request per stage; idempotent — safe to re-click if a stage stops).</p>
+		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent — if a stage stops, clicking again continues where it left off.</p>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+			<input type="hidden" name="action" value="gadv_demo_import" />
+			<?php wp_nonce_field('gadv_demo_import'); ?>
+			<?php submit_button('Import demo data', 'secondary', 'submit', false); ?>
+		</form>
+		<?php if (isset($_GET['demo-import'])): $di = get_transient('gadv_demo_import'); if ($di): ?>
+			<div class="notice notice-info is-dismissible" style="max-width:900px">
+				<p><strong>Demo import result:</strong></p>
+				<pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-width:900px;overflow:auto"><?php echo esc_html($di['msg']); ?></pre>
+			</div>
+		<?php endif; endif; ?>
+		</div>
 		<h2>Google Sign-in</h2>
 		<p>Paste the OAuth credentials from Google Cloud Console (guide: <code>docs/GOOGLE-AUTH-SETUP.md</code>).</p>
 		<p><strong>Authorized redirect URI for the Web OAuth client:</strong><br>
@@ -936,27 +959,6 @@ function gadv_google_settings_page() {
 				<?php else: ?>
 					<p>❌ No port answered — the mail service may be down for this account. Contact Namecheap support with these results.</p>
 				<?php endif; ?>
-			</div>
-		<?php endif; endif; ?>
-		<h2>Demo community (117 seeded members · 150 posts · comments · reactions · follows · groups · businesses)</h2>
-		<p><strong>Step 1 — upload the exports ZIP</strong> (found at <code>repo\scripts\exports.zip</code>). No cPanel needed.</p>
-		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
-			<input type="hidden" name="action" value="gadv_demo_zip_upload" />
-			<?php wp_nonce_field('gadv_demo_zip_upload'); ?>
-			<input type="file" name="demozip" accept=".zip" required />
-			<?php submit_button('Upload exports.zip', 'secondary', 'submit', false); ?>
-		</form>
-		<p><strong>Step 2 — click Import once</strong>: every stage runs automatically (one request per stage; idempotent — safe to re-click if a stage stops).</p>
-		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent — if a stage stops, clicking again continues where it left off.</p>
-		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-			<input type="hidden" name="action" value="gadv_demo_import" />
-			<?php wp_nonce_field('gadv_demo_import'); ?>
-			<?php submit_button('Import demo data', 'secondary', 'submit', false); ?>
-		</form>
-		<?php if (isset($_GET['demo-import'])): $di = get_transient('gadv_demo_import'); if ($di): ?>
-			<div class="notice notice-info is-dismissible" style="max-width:900px">
-				<p><strong>Demo import result:</strong></p>
-				<pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-width:900px;overflow:auto"><?php echo esc_html($di['msg']); ?></pre>
 			</div>
 		<?php endif; endif; ?>
 		<?php

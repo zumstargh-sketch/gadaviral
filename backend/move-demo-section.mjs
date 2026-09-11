@@ -6,13 +6,13 @@ let txt = fs.readFileSync(f, 'utf8');
 const h2idx = txt.indexOf('<h2>Demo community');
 if (h2idx < 0) { console.log('NOT FOUND'); process.exit(1); }
 const start = txt.lastIndexOf('\n', h2idx) + 1;
-// Precise end marker: the settings-page render block "\t\t<?php\n\t\t$upload = …"
+// Precise end marker: the settings-page render block "<?php" + "$upload = …"
 // (the function-definition occurrence uses a single tab — never matches).
-const marker = '\t\t<?php\n\t\t$upload = wp_upload_dir();';
-const markerIdx = txt.indexOf(marker);
-if (markerIdx < 0 || markerIdx < h2idx) { console.log('MARKER ISSUE at ' + markerIdx); process.exit(1); }
-const section = txt.slice(start, markerIdx);
-txt = txt.slice(0, start) + txt.slice(markerIdx);
+const re = /\t\t<\?php\s*\n\s*\$upload = wp_upload_dir\(\);/;
+const m = re.exec(txt);
+if (!m || m.index < h2idx) { console.log('MARKER ISSUE at ' + (m ? m.index : -1)); process.exit(1); }
+const section = txt.slice(start, m.index);
+txt = txt.slice(0, start) + txt.slice(m.index);
 
 const h1idx = txt.indexOf('<h1>GADAVIRAL');
 const afterH1 = txt.indexOf('\n', h1idx) + 1;
@@ -28,5 +28,3 @@ console.log('single occurrence:', (check.match(/<h2>Demo community/g) || []).len
 console.log('mail_log x' + (check.match(/function gadv_mail_log/g) || []).length);
 console.log('settings x' + (check.match(/function gadv_google_settings_page/g) || []).length);
 console.log('box present:', check.includes('border:2px solid #F2A900'));
-
-
