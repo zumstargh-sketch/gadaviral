@@ -91,6 +91,9 @@ if (file_exists($postsFile)) {
 		$post_id = wp_insert_post($post_args);
 		if (is_wp_error($post_id) || !$post_id) { $report['posts']['failed']++; $report['posts']['errors'][] = is_wp_error($post_id) ? $post_id->get_error_message() : 'unknown'; continue; }
 		update_post_meta($post_id, 'gadv_pg_id', $pgid);
+		// Mark as seeded (the demo verify check + /stats read this meta).
+		update_post_meta($post_id, 'is_demo', 1);
+		update_post_meta($post_id, 'gadv_is_demo', 1);
 		if (!empty($mapped_media)) update_post_meta($post_id, 'gadv_pg_media', json_encode($mapped_media));
 		$report['posts']['imported']++;
 	}
@@ -186,7 +189,30 @@ if (file_exists($groupsFile)) {
 	}
 }
 
-// Group members
+
+// Businesses (gadv_businesses table; owner mapped to a demo user)
+$businessesFile = $dir . '/businesses.json';
+if (file_exists($businessesFile)) {
+$businesses = read_json($businessesFile);
+$report['businesses'] = ['source'=>count($businesses),'imported'=>0,'skipped'=>0,'failed'=>0,'errors'=>[]];
+$table = $wpdb->prefix . 'gadv_businesses';
+foreach ($businesses as $b) {
+$exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE name=%s", $b['name']));
+if ($exists) { $report['businesses']['skipped']++; continue; }
+$owner = 0;
+if (!empty($b['owner_pg_id'])) { $u = get_users(['meta_key'=>'gadv_pg_id','meta_value'=>$b['owner_pg_id'],'number'=>1]); if (!empty($u)) $owner = intval($u[0]->ID); }
+$res = $wpdb->insert($table, [
+'name' => isset($b['name']) ? sanitize_text_field($b['name']) : '',
+'category' => isset($b['category']) ? sanitize_text_field($b['category']) : null,
+'description' => isset($b['description']) ? wp_kses_post($b['description']) : null,
+'area' => isset($b['area']) ? sanitize_text_field($b['area']) : null,
+'phone' => isset($b['phone']) ? sanitize_text_field($b['phone']) : null,
+'created_by' => $owner,
+]);
+if ($res === false) { $report['businesses']['failed']++; $report['businesses']['errors'][] = 'db insert failed'; continue; }
+$report['businesses']['imported']++;
+}
+}// Group members
 $membersFile = $dir . '/group_members.json';
 if (file_exists($membersFile)) {
 	$members = read_json($membersFile);

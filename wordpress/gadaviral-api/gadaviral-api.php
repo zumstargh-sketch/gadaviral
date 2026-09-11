@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GADAVIRAL API
  * Description: WordPress-backed REST API endpoints for the GADAVIRAL frontend. Non-destructive; uses WP users, posts and custom tables for reactions/follows/notifications.
- * Version: 0.2.12
+ * Version: 0.2.13
  * Author: GADAVIRAL
  * Text Domain: gadaviral-api
  */
@@ -194,6 +194,23 @@ function gadv_post_share($request) {
 	return rest_ensure_response(['share_count' => $count]);
 }
 
+// Uploads: stray upload_path/upload_url_path options (inherited from
+// migrations) write files OUTSIDE the served docroot — every attachment URL
+// then 404s (proven live: upload 200 but file 404 on www and non-www).
+// Force the canonical docroot wp-content/uploads pair so files are served.
+add_filter('upload_dir', function ($dirs) {
+	$canonical_url = untrailingslashit(site_url('wp-content/uploads'));
+	$base = wp_normalize_path(ABSPATH . 'wp-content/uploads');
+	$orig_base = wp_normalize_path($dirs['basedir'] ?? $base);
+	$sub = '';
+	if (!empty($dirs['path'])) $sub = ltrim(str_replace($orig_base, '', wp_normalize_path($dirs['path'])), '/');
+	$dirs['basedir'] = $base;
+	$dirs['path'] = $base . ($sub !== '' ? '/' . $sub : '');
+	$dirs['baseurl'] = $canonical_url;
+	$dirs['url'] = $canonical_url . ($sub !== '' ? '/' . $sub : '');
+	return $dirs;
+});
+
 function gadv_user_upload_asset($request) {
 	$kind = sanitize_text_field($request->get_param('kind'));
 	$user = gadv_get_request_user($request);
@@ -227,7 +244,7 @@ function gadv_user_upload_asset($request) {
 		} else if ($kind === 'cover') {
 			update_user_meta($user->ID, 'gadv_cover', $url);
 		}
-		return rest_ensure_response(['id' => $attach_id, 'url' => $url, 'field' => $kind]);
+		return rest_ensure_response(['id' => $attach_id, 'url' => $url, 'field' => $kind, 'file' => wp_normalize_path($filename)]);
 	}
 	return new WP_Error('upload_failed', 'Failed to insert attachment', ['status' => 500]);
 }
@@ -921,8 +938,16 @@ function gadv_google_settings_page() {
 				<?php endif; ?>
 			</div>
 		<?php endif; endif; ?>
-		<h2>Demo community (116 seeded members + 150 posts)</h2>
-		<p>Restores the seeded community from the previous backend. Steps: upload the <code>exports</code> folder (users.json, posts.json, comments.json, reactions.json, follows.json) into <code>wp-content/plugins/gadaviral-api/exports/</code> via cPanel File Manager, then click below. The import is idempotent — if it stops partway, clicking again continues where it left off.</p>
+		<h2>Demo community (117 seeded members · 150 posts · comments · reactions · follows · groups · businesses)</h2>
+		<p><strong>Step 1 — upload the exports ZIP</strong> (found at <code>repo\scripts\exports.zip</code>). No cPanel needed.</p>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+			<input type="hidden" name="action" value="gadv_demo_zip_upload" />
+			<?php wp_nonce_field('gadv_demo_zip_upload'); ?>
+			<input type="file" name="demozip" accept=".zip" required />
+			<?php submit_button('Upload exports.zip', 'secondary', 'submit', false); ?>
+		</form>
+		<p><strong>Step 2 — click Import once</strong>: every stage runs automatically (one request per stage; idempotent — safe to re-click if a stage stops).</p>
+		<p>Restores the seeded community from the previous backend via the browser. The import is idempotent — if a stage stops, clicking again continues where it left off.</p>
 		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 			<input type="hidden" name="action" value="gadv_demo_import" />
 			<?php wp_nonce_field('gadv_demo_import'); ?>
@@ -961,24 +986,41 @@ add_action('admin_post_gadv_smtp_test', function () {
 	exit;
 });
 
-// One-click demo data import: runs the bundled idempotent importer stage by
-// stage (users → posts → comments → reactions → follows), auto-advancing via
-// repeated admin-post requests so shared-hosting time limits never abort it.
+// One-click demo data import: ONE click auto-runs every stage (users → posts
+// → comments → reactions → follows → groups → group_members → businesses) via
+// a redirect chain — one request per stage so shared-hosting time limits can
+// never abort the chain. Every stage is idempotent (gadv_pg_id skips done rows).
 add_action('admin_post_gadv_demo_import', function () {
 	if (!current_user_can('manage_options')) wp_die('Forbidden');
 	check_admin_referer('gadv_demo_import');
 	$runner = __DIR__ . '/wp_importer_runner.php';
 	$dir = __DIR__ . '/exports';
-	$stages = ['users', 'posts', 'comments', 'reactions', 'follows'];
-	$stage = isset($_GET['stage']) && in_array($_GET['stage'], $stages, true) ? $_GET['stage'] : $stages[0];
+	$stages = ['users', 'posts', 'comments', 'reactions', 'follows', 'groups', 'group_members', 'businesses'];
+	$done = get_transient('gadv_demo_stages_done');
+	if (!is_array($done)) $done = [];
+
+	// Pick the first stage not marked complete (missing file = complete/no-op).
+	$stage = null;
+	foreach ($stages as $s) {
+		if (isset($done[$s])) continue;
+		if (!file_exists($dir . '/' . $s . '.json')) { $done[$s] = true; continue; }
+		$stage = $s;
+		break;
+	}
+
+	if ($stage === null) {
+		set_transient('gadv_demo_stages_done', $done, 30 * MINUTE_IN_SECONDS);
+		set_transient('gadv_demo_import', ['ok' => true, 'msg' => '✔ All stages complete — the seeded community is live. Re-running is safe (idempotent).'], 30 * MINUTE_IN_SECONDS);
+		gadv_mail_log('DEMO-IMPORT all stages complete');
+		wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
+		exit;
+	}
+
 	$result = ['ok' => false, 'msg' => ''];
-	if (!file_exists($dir . '/users.json') && !file_exists($dir . '/posts.json')) {
-		$result['msg'] = 'No exports found — upload the exports folder (users.json, posts.json, comments.json, reactions.json, follows.json) to wp-content/plugins/gadaviral-api/exports/ first.';
-	} elseif (!file_exists($runner)) {
+	if (!file_exists($runner)) {
 		$result['msg'] = 'Importer file missing (wp_importer_runner.php).';
 	} else {
 		$source = 'exports'; // consumed by the runner (admin-included mode)
-		$_GET['stage'] = $stage;
 		ob_start();
 		try {
 			include $runner;
@@ -986,20 +1028,70 @@ add_action('admin_post_gadv_demo_import', function () {
 			if (is_array($report) && isset($report[$stage])) {
 				$r = $report[$stage];
 				$result['msg'] = ucfirst($stage) . ": source={$r['source']} imported={$r['imported']} skipped={$r['skipped']} failed={$r['failed']}" . (!empty($r['duplicates']) ? " duplicates={$r['duplicates']}" : '');
-				$result['ok'] = $r['failed'] === 0;
+				$result['ok'] = ($r['failed'] === 0);
+				if ($result['ok']) $done[$stage] = true; // completed — auto-advance
 			} else {
 				$result['msg'] = ucfirst($stage) . ': file missing in exports folder — stage skipped.';
+				$done[$stage] = true;
 			}
 		} catch (Throwable $e) {
 			ob_end_clean();
-			$result['msg'] = ucfirst($stage) . " stopped: " . get_class($e) . ': ' . $e->getMessage() . ' — idempotent, click Import again to continue.';
+			$result['msg'] = ucfirst($stage) . " stopped: " . get_class($e) . ': ' . $e->getMessage() . ' — idempotent, click Import again to continue this stage.';
 		}
 	}
-	$idx = array_search($stage, $stages, true);
-	$next = ($idx !== false && $idx < count($stages) - 1) ? $stages[$idx + 1] : null;
+
+	set_transient('gadv_demo_stages_done', $done, 30 * MINUTE_IN_SECONDS);
+	$next = null;
+	foreach ($stages as $s) { if (!isset($done[$s])) { $next = $s; break; } }
 	$result['next'] = $next;
 	set_transient('gadv_demo_import', $result, 30 * MINUTE_IN_SECONDS);
 	gadv_mail_log('DEMO-IMPORT stage=' . $stage . ' result=' . ($result['ok'] ? 'DONE' : 'PARTIAL') . ' ' . $result['msg']);
+
+	// Auto-advance: chain straight into the next stage (same nonce), one
+	// request per stage. On failure or last stage, return to the settings page.
+	if (!empty($result['ok']) && $next) {
+		$nonce = isset($_REQUEST['_wpnonce']) ? sanitize_text_field($_REQUEST['_wpnonce']) : wp_create_nonce('gadv_demo_import');
+		wp_safe_redirect(add_query_arg(['action' => 'gadv_demo_import', '_wpnonce' => $nonce], admin_url('admin-post.php')));
+		exit;
+	}
+	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
+	exit;
+});
+
+// Browser upload of the demo exports ZIP — no cPanel needed. Uploads and
+// extracts exports.zip into the exports folder, then "Import demo data" runs
+// every stage automatically.
+add_action('admin_post_gadv_demo_zip_upload', function () {
+	if (!current_user_can('manage_options')) wp_die('Forbidden');
+	check_admin_referer('gadv_demo_zip_upload');
+	$result = ['ok' => false, 'msg' => ''];
+	if (empty($_FILES['demozip']) || $_FILES['demozip']['error'] !== UPLOAD_ERR_OK) {
+		$result['msg'] = 'ZIP upload failed (error ' . ($_FILES['demozip']['error'] ?? 'none') . ').';
+	} elseif (!class_exists('ZipArchive')) {
+		$result['msg'] = 'PHP ZipArchive is missing on this host — upload the exports folder via cPanel instead.';
+	} else {
+		$dir = __DIR__ . '/exports';
+		if (!wp_mkdir_p($dir)) {
+			$result['msg'] = 'Cannot create the exports dir (wp-content/plugins/gadaviral-api/exports) — check folder permissions.';
+		} else {
+			$zip = new ZipArchive();
+			$res = $zip->open($_FILES['demozip']['tmp_name']);
+			if ($res !== true) {
+				$result['msg'] = 'Cannot open the ZIP (code ' . $res . ') — is it a valid zip?';
+			} else {
+				$zip->extractTo($dir);
+				$zip->close();
+				delete_transient('gadv_demo_stages_done'); // fresh progress for the new dataset
+				$found = [];
+				foreach (['users', 'posts', 'comments', 'reactions', 'follows', 'groups', 'group_members', 'businesses'] as $s) {
+					if (file_exists($dir . '/' . $s . '.json')) $found[] = $s;
+				}
+				$result['ok'] = true;
+				$result['msg'] = 'Exports extracted: ' . implode(', ', $found) . '. Now click "Import demo data" once — it auto-runs every stage.';
+			}
+		}
+	}
+	set_transient('gadv_demo_import', $result, 30 * MINUTE_IN_SECONDS);
 	wp_safe_redirect(add_query_arg(['page' => 'gadv-google', 'demo-import' => 1], admin_url('options-general.php')));
 	exit;
 });
@@ -1089,6 +1181,15 @@ function gadv_unverified_accounts_section() {
 	}
 	echo '</tbody></table>';
 }
+/** GET /users/me — the profile page reads this; PATCH returns the same shape. */
+function gadv_user_get_me($request) {
+	$user = gadv_get_request_user($request);
+	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+	$public = gadv_user_public(get_userdata($user->ID));
+	return rest_ensure_response(array_merge($public, ['user' => $public, 'profile' => gadv_user_profile_payload($user->ID)]));
+}
+
+/** POST /users/me (PATCH) — update the signed-in profile. */
 function gadv_user_update_me($request) {
 	$user = gadv_get_request_user($request);
 	if (!$user) return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
@@ -2509,6 +2610,12 @@ add_action('rest_api_init', function () {
 		// NOTE: do NOT declare 'image' as a REST arg — WordPress validates args
 		// against JSON/query params only and would 400 every multipart upload
 		// before the handler reads $_FILES (the handler validates the file).
+	]);
+
+	register_rest_route('gadaviral/v1', '/users/me', [
+		'methods' => 'GET',
+		'callback' => 'gadv_user_get_me',
+		'permission_callback' => 'gadv_require_jwt',
 	]);
 
 	register_rest_route('gadaviral/v1', '/users/me', [
